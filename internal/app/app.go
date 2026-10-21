@@ -22,7 +22,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.4.1"
+const Version = "1.4.2"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {

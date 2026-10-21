@@ -74,4 +74,4 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 - Video, podcasts and audiobooks aren't managed separately. .m4b files are added as audiobooks.
 - Playlists are shown, but creating or editing playlists isn't supported yet.
 - No transcoding: convert FLAC/Ogg to Apple Lossless or AAC before adding.
-- The battery reading depends on the iPod answering over its USB accessory interface. If it doesn't, the battery popover says the level is unavailable. Some firmware reports no level while charging; then only "Charging" is shown.
+- The battery reading depends on the iPod answering over its USB accessory interface. If it doesn't, the battery icon still shows full and green while the iPod is connected, and the popover says the level is unavailable. Some firmware reports no level while charging; then only "Charging" is shown.

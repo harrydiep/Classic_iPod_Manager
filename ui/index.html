@@ -749,10 +749,13 @@ function paintBattery(){
   const box = $("#battBox"); if (!box) return;
   const lvl = battLevel(), b = S.batt, info = battInfo();
   const charged = !!(b && b.available && b.charged);
-  box.classList.toggle("unknown", lvl === null && !charged);
+  // With no reading, a connected iPod still shows a full green battery;
+  // only "no iPod" shows the empty, dimmed icon.
+  const connected = !!S.lib || S.devices.length > 0;
+  box.classList.toggle("unknown", lvl === null && !charged && !connected);
   box.classList.toggle("charging", !!(b && b.available && b.charging));
   box.classList.toggle("low", lvl !== null && lvl < 20 && !(b && b.charging));
-  $("#lcdBatt").style.width = (charged && lvl === null ? 100 : Math.max(6, lvl ?? 100)) + "%";
+  $("#lcdBatt").style.width = Math.max(6, lvl ?? 100) + "%";
   const plain = (info.big + ". " + String(info.state).replace(/<[^>]+>/g, "")).replace(/…\./, "…");
   box.setAttribute("aria-label", "Battery: " + plain);
   const sb = $("#sumBatt"); if (sb) sb.textContent = battShort();
@@ -967,7 +970,7 @@ function renderMain(){
 }
 function screenRows(title, rows){
   const lvl = S.lib ? battLevel() : null;
-  return `<div class="screen"><div class="screen-in"><div class="lcd-title"><span>${esc(title)}</span><span class="batt"><i style="width:${lvl ?? 80}%"></i></span></div>
+  return `<div class="screen"><div class="screen-in"><div class="lcd-title"><span>${esc(title)}</span><span class="batt"><i style="width:${lvl ?? 100}%"></i></span></div>
     ${rows.map((r, i) => `<div class="menu-row ${i === 0 ? "hl" : ""}"><span>${esc(r[0])}</span><span class="v"${r[2] ? ` id="${r[2]}"` : ""}>${esc(r[1] ?? "›")}</span></div>`).join("")}</div></div>`;
 }
 function welcomeHTML(){
