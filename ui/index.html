@@ -313,6 +313,89 @@ button{cursor:default}
 .dropzone.deny .panel b{color:var(--danger)}
 .seg.sizes button{padding:3px 11px}
 
+/* ---------- format manager ---------- */
+.fm{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--list)}
+.fm-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--head-line);background:linear-gradient(var(--head-a),var(--head-b));flex:none;flex-wrap:wrap}
+:root[data-modern] .fm-bar{background:var(--head)}
+.fm-bar h2{font-size:calc(13px*var(--fs));margin:0 6px 0 0;font-weight:600}
+.fm-bar .sp{flex:1}
+.fm-bar .count{color:var(--muted);font-size:calc(12px*var(--fs));white-space:nowrap}
+.btn.sm{height:calc(24px*var(--fs));padding:0 12px;font-size:calc(12px*var(--fs))}
+.fm-body{flex:1;display:grid;grid-template-columns:minmax(0,1fr) calc(340px*var(--fs));min-height:0}
+.fm-list{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.fm-head,.fm-row{display:grid;grid-template-columns:24px minmax(120px,2.2fr) minmax(80px,1.2fr) minmax(80px,1.2fr) calc(84px*var(--fs)) calc(104px*var(--fs)) calc(68px*var(--fs)) calc(48px*var(--fs)) minmax(90px,1fr);align-items:center}
+.fm-head{height:calc(21px*var(--fs));font-size:calc(11.5px*var(--fs));background:linear-gradient(var(--head-a),var(--head-b));border-bottom:1px solid var(--head-line);flex:none}
+:root[data-modern] .fm-head{background:var(--head);color:var(--muted);font-weight:600}
+.fm-head span{padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--grid)}
+:root[data-modern] .fm-head span{border-right-color:transparent}
+.fm-scroll{flex:1;overflow:auto;position:relative;outline:none}
+.fm-spacer{position:relative}
+.fm-row{position:absolute;left:0;right:0;height:var(--row,20px);font-size:calc(12px*var(--fs));line-height:var(--row,20px)}
+.fm-row>span{padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-row .r{text-align:right}
+.fm-row.odd{background:var(--stripe)}
+.fm-row.sel{background:var(--sel-dim)}
+.fm-scroll:focus .fm-row.sel{background:linear-gradient(var(--sel-a),var(--sel-b));color:var(--sel-text)}
+:root[data-modern] .fm-scroll:focus .fm-row.sel{background:var(--accent);color:#fff}
+.fm-scroll:focus .fm-row.sel .m,.fm-scroll:focus .fm-row.sel .chip{color:inherit;border-color:currentColor}
+.fm-row .m{color:var(--muted)}
+.fm-row.bad>span:not(:first-child){color:var(--faint)}
+.chip{display:inline-block;font-size:calc(10px*var(--fs));padding:0 6px;border-radius:8px;border:1px solid var(--grid);line-height:1.45;color:var(--muted);vertical-align:1px}
+.chip.ipod{border-color:color-mix(in srgb,var(--focus) 45%,transparent);color:var(--focus)}
+.fm-st{display:grid;place-items:center;font-size:calc(11px*var(--fs))}
+.fm-st .dot{width:7px;height:7px;border-radius:50%;background:var(--focus)}
+.fm-st .ok{color:#2f9a46;font-weight:700}
+.fm-st .err{color:var(--danger);font-weight:700}
+.fm-res.ok{color:#2f9a46}
+.fm-res.err{color:var(--danger)}
+.fm-empty{position:absolute;inset:21px 0 0 0;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted);pointer-events:none}
+.fm-empty .big{font-size:calc(15px*var(--fs));color:var(--text);font-weight:600;margin-bottom:6px}
+.fm-empty svg{width:44px;height:44px;color:var(--faint);margin-bottom:8px}
+.fm-side{border-left:1px solid var(--head-line);background:var(--sheet);display:flex;flex-direction:column;min-height:0;min-width:0}
+.fm-side .scroll{flex:1;overflow:auto;padding:12px 16px 16px}
+.fm-conv{flex:none;padding:10px 16px 12px;border-top:1px solid var(--sheet-line);background:var(--sheet);box-shadow:0 -6px 12px -10px rgba(0,0,0,.25)}
+.fm-convsel{display:grid;grid-template-columns:1fr 1.25fr;gap:6px}
+.fm-conv .check{margin-top:7px}
+.fm-conv .fm-help{margin-top:5px}
+.fm-side .acts{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
+.fm-side .acts .hint{margin-right:auto;font-size:calc(11px*var(--fs));color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fm-title{font-weight:600;font-size:calc(14px*var(--fs));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-sub{color:var(--muted);font-size:calc(11.5px*var(--fs));margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-sec{font-size:calc(10.5px*var(--fs));font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.fm-sec:after{content:"";flex:1;border-top:1px solid var(--grid)}
+.fm-artrow{display:flex;gap:12px;align-items:flex-start;margin-top:10px}
+.fm-artrow .art{width:calc(112px*var(--fs));height:calc(112px*var(--fs));flex:none}
+.fm-artrow .art svg{width:34px;height:34px}
+.fm-artrow .art.drop{outline:2px dashed var(--focus);outline-offset:2px}
+.fm-artbtns{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.fm-artbtns .note{font-size:calc(11px*var(--fs));color:var(--muted)}
+.fm-side .form{grid-template-columns:calc(80px*var(--fs)) 1fr;gap:6px 8px}
+.fm-side .form label.k{font-size:calc(11.5px*var(--fs))}
+.fm-side .form input.edited,.fm-side .form textarea.edited{border-color:var(--focus);box-shadow:0 0 0 1px var(--focus) inset}
+.selbox{width:100%;height:calc(26px*var(--fs));padding:0 6px;border:1px solid #9aa2ab;border-radius:4px;background:#fff;color:#1d1f22;font-size:calc(12.5px*var(--fs))}
+:root[data-modern] .selbox{background:var(--input-bg);color:var(--input-text);border-color:var(--ctl-line);border-radius:6px}
+.enc-line{font-size:calc(11.5px*var(--fs));margin-top:4px;line-height:1.4}
+.enc-line.ok{color:var(--muted)}
+.enc-line.ok b{color:#2f9a46;font-weight:600}
+.enc-line.bad{color:var(--danger)}
+.linkbtn{border:0;background:none;color:var(--focus);padding:0;font-size:inherit;text-decoration:underline;cursor:pointer}
+.fm-help{font-size:calc(11px*var(--fs));color:var(--muted);margin:8px 0 0;line-height:1.45}
+.fm-side .check{margin-top:8px}
+@media (max-width:1000px){.fm-body{grid-template-columns:minmax(0,1fr) calc(290px*var(--fs))}.fm-head,.fm-row{grid-template-columns:24px minmax(100px,2fr) minmax(64px,1fr) calc(84px*var(--fs)) calc(68px*var(--fs)) calc(48px*var(--fs)) minmax(60px,1fr)}.fm-head span:nth-child(4),.fm-row>span:nth-child(4),.fm-head span:nth-child(6),.fm-row>span:nth-child(6){display:none}}
+
+/* options: encoders */
+.enc-tbl{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:calc(12px*var(--fs))}
+.enc-tbl .n{font-weight:600;white-space:nowrap}
+.enc-tbl .n small{display:block;font-weight:400;color:var(--faint);font-size:calc(10.5px*var(--fs))}
+.enc-tbl input{width:100%;height:calc(24px*var(--fs));padding:2px 7px;border:1px solid #9aa2ab;border-radius:4px;background:#fff;color:#1d1f22;font-size:calc(12px*var(--fs))}
+:root[data-modern] .enc-tbl input{background:var(--input-bg);color:var(--input-text);border-color:var(--ctl-line);border-radius:6px}
+.enc-tbl .st{grid-column:2/4;font-size:calc(11px*var(--fs));margin-top:-3px;color:var(--muted)}
+.enc-tbl .st b{color:#2f9a46;font-weight:600}
+.enc-tbl .st.none{color:var(--danger)}
+.enc-tbl .st select{font-size:calc(11px*var(--fs));margin-left:4px}
+.enc-main{font-size:calc(12px*var(--fs));color:var(--muted);margin:0 0 10px;word-break:break-all}
+.enc-main b{color:var(--text);font-weight:600}
+
 /* ---------- modern themes: flat surfaces, rounded controls, one accent colour ---------- */
 :root[data-theme="white"]{
   --text:#1d1d1f; --muted:#6e6e73; --faint:#a1a1a6; --window:#ffffff;
@@ -453,6 +536,8 @@ button{cursor:default}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-bolt" viewBox="0 0 10 14"><path d="M6.2 0 0 8h4l-1 6 7-8.4H5.6z" fill="currentColor"/></symbol>
+  <symbol id="i-convert" viewBox="0 0 16 16"><path d="M2.5 5.5h9.2M9.4 3l2.6 2.5-2.6 2.5M13.5 10.5H4.3M6.6 8 4 10.5 6.6 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-image" viewBox="0 0 16 16"><rect x="1.8" y="2.5" width="12.4" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="5.6" cy="6.2" r="1.3" fill="currentColor"/><path d="m2.5 12 3.6-3.5 2.4 2.3 2.2-2 3 3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
   <symbol id="i-add" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
   <symbol id="i-folder" viewBox="0 0 16 16"><path d="M1.5 4.2c0-.7.5-1.2 1.2-1.2h3.4l1.5 1.6h5.7c.7 0 1.2.5 1.2 1.2v6.5c0 .7-.5 1.2-1.2 1.2H2.7c-.7 0-1.2-.5-1.2-1.2z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4.4M5.8 9.2h4.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
   <symbol id="i-remove" viewBox="0 0 16 16"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -487,6 +572,7 @@ button{cursor:default}
     </div>
     <div></div>
     <div class="tgroup right">
+      <button class="tbtn" id="bFormats" title="Format Manager: edit details and artwork, convert formats (Ctrl+M)"><span class="cap"><svg><use href="#i-convert"/></svg></span><span class="t">Formats</span></button>
       <button class="tbtn" id="bBrowse" title="Show the genre / artist / album browser"><span class="cap"><svg><use href="#i-browse"/></svg></span><span class="t">Browse</span></button>
       <label class="search" id="searchBox"><svg><use href="#i-search"/></svg><input id="search" type="text" placeholder="Search" aria-label="Search songs" spellcheck="false"><button class="clear" id="searchClear" aria-label="Clear search">✕</button></label>
       <button class="tbtn" id="bOptions" title="Options (Ctrl+,)"><span class="cap"><svg><use href="#i-gear"/></svg></span><span class="t">Options</span></button>
@@ -636,7 +722,7 @@ function syncScaleUI(){
 }
 
 /* ------------------------------------------------------------------ options */
-function openOptions(){
+function openOptions(section){
   if (sheetStack.length) return;
   const themeBtn = th => `<button data-theme="${th.v}" class="${S.theme === th.v ? "on" : ""}" aria-pressed="${S.theme === th.v}" ${th.v === "auto" ? `title="Match the connected iPod’s colour"` : ""}>
       <span class="sw ${th.v === "auto" ? "auto" : ""}" aria-hidden="true" style="--sw-tb:${th.sw[0]};--sw-side:${th.sw[1]};--sw-list:${th.sw[2]};--sw-acc:${th.sw[3]};--sw-line:${th.sw[4]}"><span class="t"></span><span class="s"></span><span class="l"></span></span>${th.l}</button>`;
@@ -657,6 +743,8 @@ function openOptions(){
       <div class="opt-row"><span></span>
         <label class="check"><input type="checkbox" id="optWrite" ${store.get("writeTags", true) ? "checked" : ""}>Update song files when editing info</label>
         <div class="opt-hint">Writes changes into the songs' own tags as well as the iPod's library, so they show up in other players too.</div></div>
+      <div class="opt-sec" id="optEncoders">Encoders</div>
+      <div id="encBox"><p class="enc-main">Loading…</p></div>
     </div>
     <div class="sheet-f"><div class="left"><button class="btn" data-reset>Restore Defaults</button></div><button class="btn primary" data-ok>Done</button></div>`,
   (v, close) => {
@@ -680,7 +768,48 @@ function openOptions(){
       applyTextSize(1, true); paintSizes();
     };
     v.querySelector("[data-ok]").onclick = close;
+    renderEncoders(v.querySelector("#encBox"));
+    if (section === "encoders") setTimeout(() => { const el = v.querySelector("#optEncoders"); if (el) el.scrollIntoView({block: "start"}); }, 0);
   });
+}
+
+// Options → Encoders: one folder per format inside the main folder.
+async function renderEncoders(box, info){
+  if (!box) return;
+  if (!info){
+    try { info = await api("encoders"); } catch(e){ box.innerHTML = `<p class="enc-main">${esc(e.message)}</p>`; return; }
+  }
+  FM.encoders = info;
+  if (!box.isConnected) return;
+  const rows = (info.encoders || []).filter(s => !s.builtin);
+  box.innerHTML = `<p class="enc-main">Main folder: <b>${esc(info.main || "–")}</b> <button class="linkbtn" data-openf="main">Open</button>
+      ${info.main && !info.writable ? `<br><span style="color:var(--danger)">PodManager can’t write to this folder. Move PodManager.exe somewhere you can write to, such as your Documents folder.</span>` : ""}</p>
+    <div class="opt-hint" style="margin:-4px 0 10px">Put each encoder program (the .exe) in its format’s folder, or in a folder inside it. Folders are inside the main folder unless you type a full path. WAV and AIFF are written by PodManager and need nothing. The Decoder folder is for ffmpeg.exe, which lets PodManager read formats such as FLAC, Ogg and WMA.</div>
+    <div class="enc-tbl">${rows.map(s => `
+      <span class="n">${esc(s.label)}</span>
+      <input type="text" value="${esc(s.folder)}" data-enc="${s.id}" spellcheck="false" aria-label="${esc(s.label)} encoder folder">
+      <button class="btn sm" data-openf="${s.id}">Open</button>
+      <div class="st ${s.active ? "" : "none"}">${s.active
+        ? `Using <b>${esc(s.active)}</b>${(s.tools || []).length > 1 ? ` <select data-choice="${s.id}" aria-label="${esc(s.label)} encoder"><option value="">Automatic</option>${s.tools.map(t => `<option value="${esc(t.name)}" ${t.name === s.choice ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>` : ""}`
+        : `Not found – put ${esc(s.hint)} here${s.exists ? "" : " (the folder doesn’t exist yet)"}`}</div>`).join("")}
+    </div>
+    <div class="sum-actions" style="margin-top:12px"><button class="btn sm" data-recheck>Check Again</button>
+      <button class="btn sm" data-openf="converted">Show Converted Music</button><button class="btn sm" data-openf="originals">Show iPod Originals</button></div>`;
+  box.querySelectorAll("[data-openf]").forEach(b => b.onclick = () => api("openFolder", b.dataset.openf).catch(e => alertSheet("Couldn’t open the folder", e.message)));
+  const save = async (id, folder, choice) => {
+    try { renderEncoders(box, await api("setEncoder", id, folder, choice)); if (S.view === "fm") fmRenderSide(); }
+    catch(e){ alertSheet("Couldn’t change the encoder", e.message); }
+  };
+  box.querySelectorAll("[data-enc]").forEach(inp => {
+    const id = inp.dataset.enc, st = rows.find(r => r.id === id);
+    inp.addEventListener("change", () => save(id, inp.value, st.choice || ""));
+    inp.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); inp.blur(); } });
+  });
+  box.querySelectorAll("[data-choice]").forEach(sel => sel.onchange = () => {
+    const st = rows.find(r => r.id === sel.dataset.choice);
+    save(st.id, st.folder, sel.value);
+  });
+  box.querySelector("[data-recheck]").onclick = async () => { await renderEncoders(box); if (S.view === "fm") fmRenderSide(); };
 }
 
 /* ------------------------------------------------------------------ LCD */
@@ -691,7 +820,7 @@ function renderLCD(){
   paintBattery();
   if (S.busy){
     const b = S.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
-    const verb = {add:"Copying", remove:"Removing", update:"Updating", export:"Copying to computer"}[b.job] || "Working";
+    const verb = {add:"Copying", remove:"Removing", update:"Updating", export:"Copying to computer", convert:"Converting", retag:"Saving"}[b.job] || "Working";
     const line1 = b.total ? `${verb} ${Math.min(b.done+1, b.total).toLocaleString()} of ${b.total.toLocaleString()}` : verb+"…";
     body.innerHTML = `<div class="lcd-line1">${esc(line1)}</div>
       <div class="lcd-progress"><div class="pbar ${b.total ? "" : "indet"}"><i style="width:${pct}%"></i></div>
@@ -870,6 +999,7 @@ function renderSidebar(){
         <svg><use href="#${p.smart ? "i-gear" : "i-list"}"/></svg><span class="lbl">${esc(p.name)}</span><span class="cnt">${p.trackIds.length.toLocaleString()}</span></div>`;
     });
   }
+  h += `<div class="shead">Tools</div><div class="sitem ${S.view === "fm" ? "sel" : ""}" data-view="fm" title="Edit details and artwork, and convert between formats (Ctrl+M)"><svg><use href="#i-convert"/></svg><span class="lbl">Format Manager</span>${FM.items.length ? `<span class="cnt">${FM.items.length.toLocaleString()}</span>` : ""}</div>`;
   sb.innerHTML = h;
   const ri = $("#renameIn");
   if (ri){ ri.focus(); ri.select();
@@ -952,6 +1082,7 @@ function buildList(){
 /* ------------------------------------------------------------------ main area */
 function renderMain(){
   const m = $("#main");
+  if (S.view === "fm"){ renderFM(m); return; }
   if (!S.devices.length && !S.lib){ m.innerHTML = welcomeHTML(); return; }
   if (S.view === "setup"){ m.innerHTML = setupHTML(); bindSetup(); return; }
   if (!S.lib){ m.innerHTML = pickHTML(); return; }
@@ -1175,7 +1306,8 @@ function updateButtons(){
   const ro = !S.lib || !!S.lib.readOnly, busy = !!S.busy, n = S.sel.size;
   $("#bAdd").disabled = ro || busy; $("#bFolder").disabled = ro || busy;
   $("#bInfo").disabled = ro || busy || !n; $("#bRemove").disabled = ro || busy || !n;
-  $("#bBrowse").classList.toggle("on", S.browser); $("#bBrowse").disabled = !S.lib;
+  $("#bBrowse").classList.toggle("on", S.browser && S.view !== "fm"); $("#bBrowse").disabled = !S.lib;
+  $("#bFormats").classList.toggle("on", S.view === "fm");
 }
 function selectRange(a, b){ const list = S.list; const [lo, hi] = a < b ? [a, b] : [b, a]; for (let i = lo; i <= hi; i++) if (list[i]) S.sel.add(list[i].id); }
 function indexOfId(id){ return S.list.findIndex(t => t.id === id); }
@@ -1258,6 +1390,7 @@ async function startDragOut(){
 const BAD_TYPES = /^(audio\/(flac|x-flac|ogg|opus|x-ms-wma|ape|x-ape)|video\/|image\/|text\/|application\/(pdf|zip|x-zip))/;
 let dragDepth = 0;
 function dropDenyReason(){
+  if (S.view === "fm") return fmBusy() ? "Please wait for the current task to finish" : "";
   if (!S.lib) return S.devices.length ? "Open your iPod first" : "Connect your iPod first";
   if (S.lib.readOnly) return "This iPod is read-only";
   if (S.busy) return "Please wait for the current task to finish";
@@ -1268,6 +1401,15 @@ function showDropZone(e){
   const items = [...(e.dataTransfer.items || [])].filter(i => i.kind === "file");
   const bad = items.filter(i => BAD_TYPES.test(i.type || ""));
   const reason = dropDenyReason();
+  if (S.view === "fm"){
+    const imgs = items.filter(i => /^image\//.test(i.type || ""));
+    z.classList.add("on"); z.classList.toggle("deny", !!reason);
+    const forArt = imgs.length && imgs.length === items.length;
+    $("#dropTitle").textContent = reason || (forArt ? (FM.sel.size ? "Use as album artwork" : "Select songs first") : "Add to the Format Manager");
+    $("#dropSub").textContent = reason ? "" : forArt ? (FM.sel.size ? `for ${plural(FM.sel.size, "selected song")}` : "then drop the picture again") : "Songs in any format, or folders of songs";
+    e.dataTransfer.dropEffect = reason ? "none" : "copy";
+    return;
+  }
   const allBad = items.length > 0 && bad.length === items.length;
   z.classList.add("on");
   z.classList.toggle("deny", !!reason || allBad);
@@ -1287,7 +1429,7 @@ addEventListener("drop", e => {
   hideDropZone();
   if (!wasFiles) return;
   const reason = dropDenyReason();
-  if (reason){ alertSheet("Can’t copy to the iPod", reason + "."); return; }
+  if (reason){ alertSheet(S.view === "fm" ? "Can’t add the songs" : "Can’t copy to the iPod", reason + "."); return; }
   const files = e.dataTransfer.files;
   if (!files || !files.length) return;
   const wv = window.chrome && chrome.webview;
@@ -1305,6 +1447,7 @@ function rejectList(list){
   return `<div class="errlist">${list.map(x => `<div><b title="${esc(x.item)}">${esc(x.item.split(/[\\/]/).pop())}</b><span>${esc(x.message)}</span></div>`).join("")}</div>`;
 }
 function handleDropCheck(d){
+  if (S.view === "fm"){ fmHandleDrop(d.paths); return; }
   S.flash = null; renderLCD();
   if (d.reason){ alertSheet("Can’t copy to the iPod", d.reason); return; }
   const rej = d.rejected || [], ok = d.accepted || [];
@@ -1331,6 +1474,7 @@ function showCtx(x, y){
   if (!ro) items.push(["Get Info", openInfo]);
   if (n === 1) items.push(["Show in Explorer", () => api("reveal", selectedIds()[0]).catch(e => alertSheet("Couldn’t show the file", e.message))]);
   items.push(["Copy to Computer…", exportSel]);
+  if (!ro) items.push([n > 1 ? `Edit or Convert ${n} Songs in Format Manager` : "Edit or Convert in Format Manager", () => fmAddIPod(selectedIds())]);
   if (!ro){ items.push(null); items.push([n > 1 ? `Remove ${n} Songs from iPod…` : "Remove from iPod…", confirmRemove]); }
   m.innerHTML = items.map((it, i) => it ? `<div data-i="${i}">${esc(it[0])}</div>` : "<hr>").join("");
   document.body.appendChild(m);
@@ -1517,6 +1661,438 @@ async function loadArt(v, id, cap, multi){
   box.appendChild(img);
 }
 
+/* ------------------------------------------------------------------ format manager */
+// Songs from the computer or the iPod, with pending tag/artwork edits.
+// item: {key, source, path, trackId, name, info, error, edits:{}, art:null|{action,path,dataUrl}, status}
+const FM = {
+  items: [], byKey: new Map(), sel: new Set(), anchor: null, cursor: null, list: [],
+  artCache: new Map(), encoders: null,
+  format: store.get("fmFormat", "aac"), quality: store.get("fmQuality", {}), addToIPod: store.get("fmAddToIPod", true),
+};
+const FM_FIELDS = [
+  ["title","Name","text"],["artist","Artist","text"],["albumArtist","Album Artist","text"],["album","Album","text"],
+  ["genre","Genre","genre"],["year","Year","num"],["track","Track","pair"],["disc","Disc","pair"],
+  ["composer","Composer","text"],["grouping","Grouping","text"],["comment","Comments","area"],["bpm","BPM","num"],["compilation","Compilation","bool"],
+];
+const FM_NUM = new Set(["year","trackNumber","trackCount","discNumber","discCount","bpm"]);
+const IMG_EXT = /\.(jpe?g|png|gif)$/i;
+
+function fmOrig(it, k){
+  const t = (it.info && it.info.tags) || {};
+  if (k === "compilation") return !!t.compilation;
+  if (FM_NUM.has(k)) return t[k] || 0;
+  return t[k] || "";
+}
+function fmVal(it, k){ return it.edits && k in it.edits ? it.edits[k] : fmOrig(it, k); }
+function fmDirty(it){ return !!((it.edits && Object.keys(it.edits).length) || it.art); }
+function fmTitle(it){ return fmVal(it, "title") || it.name; }
+function fmSelected(){ return FM.items.filter(i => FM.sel.has(i.key)); }
+function fmBusy(){ return S.busy && (S.busy.job === "convert" || S.busy.job === "retag"); }
+
+function fmAdd(items){
+  const bad = [];
+  let added = 0;
+  for (const it of items || []){
+    if (it.error){ bad.push({item: it.path, message: it.error}); continue; }
+    if (FM.byKey.has(it.key)) continue;
+    it.edits = {}; it.art = null; it.status = null;
+    FM.items.push(it); FM.byKey.set(it.key, it); added++;
+  }
+  if (S.view !== "fm") setView("fm"); else renderMain();
+  renderSidebar();
+  if (added) flash(`Added ${plural(added, "song")}`, "to the Format Manager");
+  if (bad.length){
+    sheet(`<div class="sheet-h">${bad.length === 1 ? "1 file couldn’t be added" : `${bad.length.toLocaleString()} files couldn’t be added`}</div>
+      <div class="sheet-b"><p>These aren’t songs PodManager can read.</p>${rejectList(bad)}</div>
+      <div class="sheet-f"><button class="btn primary" data-ok>OK</button></div>`, (v, close) => { v.querySelector("[data-ok]").onclick = close; });
+  }
+}
+async function fmAddPaths(paths){
+  if (!paths || !paths.length) return;
+  flash("Reading songs…", "");
+  try { fmAdd(await api("fmInspect", paths)); }
+  catch(e){ alertSheet("Couldn’t read the songs", e.message); }
+}
+async function fmAddFiles(){ try { await fmAddPaths(await api("fmPickFiles")); } catch(e){ alertSheet("Couldn’t add songs", e.message); } }
+async function fmAddFolder(){ try { await fmAddPaths(await api("fmPickFolder")); } catch(e){ alertSheet("Couldn’t add the folder", e.message); } }
+async function fmAddIPod(ids){
+  if (!ids.length) return;
+  try {
+    const items = await api("fmFromIPod", ids);
+    fmAdd(items);
+    FM.sel = new Set(items.map(i => i.key)); renderMain();
+  } catch(e){ alertSheet("Couldn’t add the songs", e.message); }
+}
+function fmRemoveSelected(){
+  if (fmBusy() || !FM.sel.size) return;
+  FM.items = FM.items.filter(i => !FM.sel.has(i.key));
+  for (const k of FM.sel){ FM.byKey.delete(k); FM.artCache.delete(k); }
+  FM.sel.clear(); FM.anchor = FM.cursor = null;
+  renderMain(); renderSidebar();
+}
+function fmClear(){
+  if (fmBusy()) return;
+  const n = FM.items.filter(fmDirty).length;
+  const doit = () => { FM.items = []; FM.byKey.clear(); FM.sel.clear(); FM.artCache.clear(); renderMain(); renderSidebar(); };
+  if (!n){ doit(); return; }
+  sheet(`<div class="sheet-h">Clear the list?</div><div class="sheet-b"><p>${plural(n, "song has", "songs have")} changes that haven’t been saved. Clearing the list throws them away.</p></div>
+    <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Clear List</button></div>`,
+    (v, close) => { v.querySelector("[data-c]").onclick = close; v.querySelector("[data-ok]").onclick = () => { close(); doit(); }; });
+}
+function fmBuildList(){
+  const words = S.search.toLowerCase().split(/\s+/).filter(Boolean);
+  FM.list = !words.length ? FM.items : FM.items.filter(it => {
+    const hay = `${fmVal(it,"title")} ${fmVal(it,"artist")} ${fmVal(it,"album")} ${it.name}`.toLowerCase();
+    return words.every(w => hay.includes(w));
+  });
+  return FM.list;
+}
+
+function renderFM(m){
+  const n = FM.items.length, dirty = FM.items.filter(fmDirty).length;
+  m.innerHTML = `<div class="fm">
+    <div class="fm-bar"><h2>Format Manager</h2>
+      <button class="btn sm" id="fmFiles">Add Files…</button><button class="btn sm" id="fmFolder">Add Folder…</button>
+      <button class="btn sm" id="fmRemove" ${FM.sel.size && !fmBusy() ? "" : "disabled"}>Remove from List</button>
+      <button class="btn sm" id="fmClear" ${n && !fmBusy() ? "" : "disabled"}>Clear</button>
+      <span class="sp"></span><span class="count">${n ? plural(n, "song") + (dirty ? ` · ${dirty.toLocaleString()} changed` : "") : ""}</span></div>
+    <div class="fm-body">
+      <div class="fm-list">
+        <div class="fm-head"><span></span><span>Name</span><span>Artist</span><span>Album</span><span>Source</span><span>Format</span><span style="text-align:right">Bit Rate</span><span style="text-align:right">Time</span><span>Result</span></div>
+        <div class="fm-scroll" id="fmScroll" tabindex="0" aria-label="Format Manager songs"><div class="fm-spacer" id="fmSpacer"></div></div>
+        <div class="fm-empty ${n ? "hidden" : ""}" id="fmEmpty"><div><svg><use href="#i-convert"/></svg><div class="big">Edit and convert songs</div>
+          <p>Drag songs here from Explorer, use Add Files, or right-click songs on your iPod and choose Format Manager.</p>
+          <p>You can change their details and artwork, and convert them between MP3, AAC, Apple Lossless, WAV, AIFF, FLAC and Ogg Vorbis.</p></div></div>
+      </div>
+      <div class="fm-side" id="fmSide"></div>
+    </div></div>`;
+  $("#fmFiles").onclick = fmAddFiles; $("#fmFolder").onclick = fmAddFolder;
+  $("#fmRemove").onclick = fmRemoveSelected; $("#fmClear").onclick = fmClear;
+  const sc = $("#fmScroll");
+  sc.addEventListener("scroll", () => fmRenderRows());
+  fmBindList(sc);
+  fmBuildList();
+  fmRenderRows(true);
+  fmRenderSide();
+  if (!FM.encoders) fmLoadEncoders();
+}
+function fmStatusCell(it){
+  if (it.status && it.status.kind === "ok") return `<span class="ok" title="${esc(it.status.text)}">✓</span>`;
+  if (it.status && it.status.kind === "err") return `<span class="err" title="${esc(it.status.text)}">!</span>`;
+  if (fmDirty(it)) return `<span class="dot" title="Changed – not saved yet"></span>`;
+  return "";
+}
+let fmLastRange = "";
+function fmRenderRows(force){
+  const sc = $("#fmScroll"), sp = $("#fmSpacer"); if (!sc) return;
+  const list = FM.list;
+  sp.style.height = list.length * ROW + "px";
+  const first = Math.max(0, Math.floor(sc.scrollTop / ROW) - 8), last = Math.min(list.length, Math.ceil((sc.scrollTop + sc.clientHeight) / ROW) + 8);
+  const range = first + ":" + last;
+  if (!force && range === fmLastRange) return;
+  fmLastRange = range;
+  let h = "";
+  for (let i = first; i < last; i++){
+    const it = list[i], inf = it.info || {};
+    const res = it.status ? `<span class="fm-res ${it.status.kind}" title="${esc(it.status.text)}">${esc(it.status.short || it.status.text)}</span>` : "<span></span>";
+    h += `<div class="fm-row ${i % 2 ? "odd" : ""} ${FM.sel.has(it.key) ? "sel" : ""}" style="top:${i*ROW}px" data-k="${esc(it.key)}" title="${esc(it.path)}">
+      <span class="fm-st">${fmStatusCell(it)}</span><span>${esc(fmTitle(it))}</span><span>${esc(fmVal(it, "artist"))}</span><span>${esc(fmVal(it, "album"))}</span>
+      <span><span class="chip ${it.source === "ipod" ? "ipod" : ""}">${it.source === "ipod" ? "iPod" : "Computer"}</span></span>
+      <span ${inf.label && !inf.playable ? `title="An iPod can’t play ${esc(inf.label)} – convert it to add it to the iPod"` : ""}>${esc(inf.label || "")}</span>
+      <span class="r m">${inf.bitrate ? inf.bitrate + " kbps" : ""}</span><span class="r m">${inf.lengthMs ? fmtTime(inf.lengthMs) : ""}</span>${res}</div>`;
+  }
+  sp.innerHTML = h;
+}
+function fmBindList(sc){
+  sc.addEventListener("mousedown", e => {
+    const row = e.target.closest(".fm-row"); sc.focus();
+    if (!row){ if (!e.ctrlKey){ FM.sel.clear(); fmSelChanged(); } return; }
+    const k = row.dataset.k, idx = FM.list.findIndex(i => i.key === k);
+    if (e.shiftKey && FM.anchor !== null){
+      const ai = FM.list.findIndex(i => i.key === FM.anchor);
+      if (!e.ctrlKey) FM.sel.clear();
+      const [lo, hi] = ai < idx ? [ai, idx] : [idx, ai];
+      for (let i = lo; i <= hi; i++) if (FM.list[i]) FM.sel.add(FM.list[i].key);
+    } else if (e.ctrlKey){
+      FM.sel.has(k) ? FM.sel.delete(k) : FM.sel.add(k); FM.anchor = k;
+    } else {
+      if (!(e.button === 2 && FM.sel.has(k))){ FM.sel.clear(); FM.sel.add(k); }
+      FM.anchor = k;
+    }
+    FM.cursor = k;
+    fmSelChanged();
+  });
+  sc.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.key.toLowerCase() === "a"){ e.preventDefault(); FM.sel = new Set(FM.list.map(i => i.key)); fmSelChanged(); return; }
+    if (e.key === "Delete"){ e.preventDefault(); fmRemoveSelected(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault();
+      let i = FM.list.findIndex(x => x.key === FM.cursor);
+      i = Math.max(0, Math.min(FM.list.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)));
+      const it = FM.list[i]; if (!it) return;
+      if (!e.shiftKey){ FM.sel.clear(); FM.anchor = it.key; }
+      FM.sel.add(it.key); FM.cursor = it.key;
+      const top = i * ROW; if (top < sc.scrollTop) sc.scrollTop = top; else if (top + ROW > sc.scrollTop + sc.clientHeight) sc.scrollTop = top + ROW - sc.clientHeight;
+      fmSelChanged();
+    }
+  });
+  sc.addEventListener("contextmenu", e => {
+    const row = e.target.closest(".fm-row"); if (!row || !FM.sel.size) return;
+    e.preventDefault();
+    const items = [["Remove from List", fmRemoveSelected]];
+    const sel = fmSelected();
+    if (sel.length === 1 && sel[0].source === "file") items.unshift(["Show in Explorer", () => api("revealFile", sel[0].path).catch(e => alertSheet("Couldn’t show the file", e.message))]);
+    if (sel.length === 1 && sel[0].source === "ipod") items.unshift(["Show in Explorer", () => api("reveal", sel[0].trackId).catch(e => alertSheet("Couldn’t show the file", e.message))]);
+    if (sel.length === 1 && sel[0].status && sel[0].status.output) items.unshift(["Show Converted File", () => api("revealFile", sel[0].status.output).catch(e => alertSheet("Couldn’t show the file", e.message))]);
+    fmCtx(e.clientX, e.clientY, items);
+  });
+}
+function fmCtx(x, y, items){
+  closeCtx();
+  const m = document.createElement("div"); m.className = "ctx"; m.id = "ctx";
+  m.innerHTML = items.map((it, i) => `<div data-i="${i}">${esc(it[0])}</div>`).join("");
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect(), z = cssZoom;
+  m.style.left = Math.min(x / z, innerWidth / z - r.width / z - 4) + "px"; m.style.top = Math.min(y / z, innerHeight / z - r.height / z - 4) + "px";
+  m.onclick = e => { const d = e.target.closest("[data-i]"); if (!d) return; closeCtx(); items[+d.dataset.i][1](); };
+}
+function fmSelChanged(){
+  fmRenderRows(true);
+  fmRenderSide();
+  const rb = $("#fmRemove"); if (rb) rb.disabled = !FM.sel.size || fmBusy();
+}
+
+/* the side panel: artwork, details, convert */
+function fmCommon(items, k){
+  const v = fmVal(items[0], k);
+  return items.every(i => fmVal(i, k) === v) ? v : undefined;
+}
+function fmRenderSide(){
+  const side = $("#fmSide"); if (!side) return;
+  const sel = fmSelected(), busy = fmBusy();
+  const targets = sel.length ? sel : FM.items;
+  const dirtyAll = FM.items.filter(fmDirty);
+  const convertN = targets.filter(i => !i.error).length;
+  const convertLabel = sel.length ? `Convert ${plural(sel.length, "Song")}` : (FM.items.length ? `Convert All (${FM.items.length.toLocaleString()})` : "Convert");
+  let h = `<div class="scroll">`;
+  if (!sel.length){
+    h += `<div class="fm-title">${FM.items.length ? "No songs selected" : "Format Manager"}</div>
+      <div class="fm-sub">${FM.items.length ? "Select songs to change their details or artwork." : "Add songs to get started."}</div>`;
+  } else {
+    const one = sel.length === 1 ? sel[0] : null;
+    const cArtist = fmCommon(sel, "artist"), cAlbum = fmCommon(sel, "album");
+    h += `<div class="fm-title">${esc(one ? fmTitle(one) : plural(sel.length, "song") + " selected")}</div>
+      <div class="fm-sub">${esc(one ? [one.info && one.info.label, one.info && one.info.bitrate ? one.info.bitrate + " kbps" : "", one.info && one.info.sampleRate ? (one.info.sampleRate/1000).toFixed(1) + " kHz" : "", one.info && one.info.bits ? one.info.bits + "-bit" : "", one.info && fmtBytes(one.info.size)].filter(Boolean).join(" · ")
+        : [cArtist === undefined ? "Multiple artists" : (cArtist || "Unknown artist"), cAlbum === undefined ? "Multiple albums" : (cAlbum || "Unknown album")].join(" · "))}</div>`;
+    const noTags = sel.filter(i => i.info && !i.info.tagsInFile && i.source === "file").length;
+    h += `<div class="fm-artrow"><div class="art" id="fmArt" aria-label="Album artwork"><svg><use href="#i-note"/></svg></div>
+      <div class="fm-artbtns"><button class="btn sm" id="fmArtPick" ${busy ? "disabled" : ""}>Choose Artwork…</button>
+        <button class="btn sm" id="fmArtRemove" ${busy ? "disabled" : ""}>Remove Artwork</button>
+        <button class="btn sm hidden" id="fmArtUndo">Undo Artwork Change</button>
+        <span class="note" id="fmArtNote">You can also drop a picture here.</span></div></div>`;
+    h += `<div class="fm-sec">Details</div><form class="form" id="fmForm" autocomplete="off">`;
+    const genres = [...new Set([...(S.lib ? S.lib.tracks.map(t => t.genre) : []), ...FM.items.map(i => fmVal(i, "genre"))].filter(Boolean))].sort();
+    const field = (k, label, type) => {
+      const c = fmCommon(sel, k), mixed = c === undefined, edited = sel.some(i => i.edits && k in i.edits);
+      const cls = `${mixed ? "mixed" : ""} ${edited ? "edited" : ""}`;
+      const ph = mixed ? (type === "num" ? "–" : "Mixed") : "";
+      if (type === "area") return `<label class="k" for="fm_${k}">${label}</label><div class="f"><textarea id="fm_${k}" data-f="${k}" class="${cls}" placeholder="${ph}">${esc(mixed ? "" : c)}</textarea></div>`;
+      if (type === "num") return `<input type="number" min="0" max="65535" class="short ${cls}" id="fm_${k}" data-f="${k}" value="${mixed || !c ? "" : c}" placeholder="${ph}">`;
+      return `<label class="k" for="fm_${k}">${label}</label><div class="f"><input type="text" id="fm_${k}" data-f="${k}" ${type === "genre" ? 'list="fmGenres"' : ""} value="${esc(mixed ? "" : c)}" class="${cls}" placeholder="${ph}"></div>`;
+    };
+    for (const [k, label, type] of FM_FIELDS){
+      if (type === "text" || type === "area" || type === "genre") h += field(k, label, type);
+      if (type === "num") h += `<label class="k" for="fm_${k}">${label}</label><div class="f">${field(k, label, "num")}</div>`;
+      if (type === "pair"){
+        const a = k === "track" ? "trackNumber" : "discNumber", b = k === "track" ? "trackCount" : "discCount";
+        h += `<label class="k" for="fm_${a}">${label}</label><div class="f">${field(a, label, "num")}<span class="of">of</span>${field(b, label, "num")}</div>`;
+      }
+      if (type === "bool"){
+        const c = fmCommon(sel, "compilation");
+        h += `<span></span><div class="f"><label class="check"><input type="checkbox" data-f="compilation" ${c ? "checked" : ""}>Part of a compilation${c === undefined ? " (mixed)" : ""}</label></div>`;
+      }
+    }
+    h += `</form><datalist id="fmGenres">${genres.map(g => `<option value="${esc(g)}">`).join("")}</datalist>`;
+    if (noTags) h += `<p class="fm-help">${noTags === 1 ? "One song is" : `${noTags} songs are`} WAV or AIFF, which can’t store details or artwork. Convert ${noTags === 1 ? "it" : "them"} to keep the changes.</p>`;
+  }
+  // convert controls and actions stay visible at the bottom
+  const fmts = (FM.encoders && FM.encoders.formats) || [];
+  const f = fmts.find(x => x.id === FM.format) || fmts[0];
+  h += `</div><div class="fm-conv">`;
+  let canConvert = false;
+  if (f){
+    const q = FM.quality[f.id] || (f.qualities.find(x => x.default) || f.qualities[0]).id;
+    const st = (FM.encoders.encoders || []).find(x => x.id === f.id) || {};
+    canConvert = f.builtin || !!st.active;
+    const opt = x => `<option value="${x.id}" ${x.id === f.id ? "selected" : ""}>${esc(x.label)}</option>`;
+    const canAdd = S.lib && !S.lib.readOnly && f.ipod && targets.some(i => i.source === "file");
+    const fromIPod = targets.some(i => i.source === "ipod");
+    h += `<div class="fm-sec" style="margin-top:2px">Convert to</div>
+      <div class="fm-convsel">
+        <select class="selbox" id="fmFormat" aria-label="Format" ${busy ? "disabled" : ""}><optgroup label="Plays on an iPod">${fmts.filter(x => x.ipod).map(opt).join("")}</optgroup><optgroup label="For the computer only">${fmts.filter(x => !x.ipod).map(opt).join("")}</optgroup></select>
+        <select class="selbox" id="fmQuality" aria-label="${f.lossless ? "Quality" : "Bit rate"}" ${busy || f.qualities.length < 2 ? "disabled" : ""}>${f.qualities.map(x => `<option value="${x.id}" ${x.id === q ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>
+      </div>
+      ${f.builtin ? `<div class="enc-line ok">Written by PodManager – no encoder needed${f.id === "wav" || f.id === "aiff" ? ". " + esc(f.label) + " files can’t hold details or artwork" : ""}.</div>`
+        : st.active ? `<div class="enc-line ok">Encoder: <b>${esc(st.active)}</b> · <button class="linkbtn" data-open="${f.id}">Show folder</button></div>`
+        : `<div class="enc-line bad">No ${esc(f.label)} encoder found. Put ${esc(f.hint)} in the <button class="linkbtn" data-open="${f.id}">${esc((st.folder || "").split(/[\\/]/).pop() || f.label)} folder</button> or choose one in <button class="linkbtn" data-opts>Options</button>.</div>`}
+      <label class="check" ${canAdd ? "" : `title="${f.ipod ? "Connect an iPod to add songs to it" : esc(f.label) + " can’t play on an iPod"}"`}><input type="checkbox" id="fmAddIPod" ${FM.addToIPod && canAdd ? "checked" : ""} ${canAdd && !busy ? "" : "disabled"}>Add converted computer songs to the iPod</label>
+      <p class="fm-help">${fromIPod ? (f.ipod ? "iPod songs are backed up to <button class=\"linkbtn\" data-open=\"originals\">iPod Originals</button>, then replaced on the iPod. " : `${esc(f.label)} can’t play on an iPod, so iPod songs stay as they are. `) : ""}Copies go to <button class="linkbtn" data-open="converted">Converted Music</button>.</p>`;
+  }
+  h += `<div class="acts">
+    <button class="btn" id="fmSave" ${dirtyAll.length && !busy ? "" : "disabled"} title="Write the changed details and artwork into the songs, without converting">Save Changes</button>
+    <button class="btn primary" id="fmConvert" ${convertN && !busy && canConvert ? "" : "disabled"}>${convertLabel}</button></div></div>`;
+  side.innerHTML = h;
+  fmBindSide(side, sel);
+}
+function fmBindSide(side, sel){
+  side.querySelectorAll("[data-open]").forEach(b => b.onclick = () => api("openFolder", b.dataset.open).catch(e => alertSheet("Couldn’t open the folder", e.message)));
+  side.querySelectorAll("[data-opts]").forEach(b => b.onclick = () => openOptions("encoders"));
+  const fs = side.querySelector("#fmFormat");
+  if (fs) fs.onchange = () => { FM.format = fs.value; store.set("fmFormat", FM.format); fmRenderSide(); };
+  const qs = side.querySelector("#fmQuality");
+  if (qs) qs.onchange = () => { FM.quality[FM.format] = qs.value; store.set("fmQuality", FM.quality); };
+  const ai = side.querySelector("#fmAddIPod");
+  if (ai) ai.onchange = () => { FM.addToIPod = ai.checked; store.set("fmAddToIPod", ai.checked); };
+  side.querySelector("#fmSave").onclick = () => fmRun(false);
+  side.querySelector("#fmConvert").onclick = () => fmRun(true);
+  if (!sel.length) return;
+  fmPaintArt(sel);
+  side.querySelector("#fmArtPick").onclick = async () => {
+    try { const img = await api("fmPickImage"); if (img) fmSetArt(fmSelected(), {action:"set", path: img.path, dataUrl: img.art.dataUrl, w: img.art.width, h: img.art.height}); }
+    catch(e){ alertSheet("Couldn’t use the picture", e.message); }
+  };
+  side.querySelector("#fmArtRemove").onclick = () => fmSetArt(fmSelected(), {action:"remove"});
+  side.querySelector("#fmArtUndo").onclick = () => fmSetArt(fmSelected(), null);
+  const form = side.querySelector("#fmForm");
+  const onEdit = e => {
+    const k = e.target.dataset.f; if (!k) return;
+    let v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (FM_NUM.has(k)) v = v === "" ? 0 : Math.max(0, parseInt(v, 10) || 0);
+    for (const it of fmSelected()){
+      if (v === fmOrig(it, k)) delete it.edits[k]; else it.edits[k] = v;
+    }
+    e.target.classList.remove("mixed");
+    e.target.classList.toggle("edited", fmSelected().some(i => k in i.edits));
+    fmRenderRows(true); fmRefreshCounts();
+  };
+  form.addEventListener("input", onEdit);
+  form.addEventListener("change", onEdit);
+  form.addEventListener("submit", e => e.preventDefault());
+  form.addEventListener("keydown", e => { if (e.key === "Escape"){ e.target.blur(); } e.stopPropagation(); });
+}
+function fmRefreshCounts(){
+  // update the counters and buttons without redrawing the form being typed in
+  const dirty = FM.items.filter(fmDirty).length;
+  const c = $(".fm-bar .count"); if (c) c.textContent = FM.items.length ? plural(FM.items.length, "song") + (dirty ? ` · ${dirty.toLocaleString()} changed` : "") : "";
+  const sb = $("#fmSave"); if (sb) sb.disabled = !dirty || fmBusy();
+}
+function fmSetArt(items, art){
+  for (const it of items) it.art = art;
+  fmPaintArt(items); fmRenderRows(true); fmRefreshCounts();
+}
+async function fmPaintArt(sel){
+  const box = $("#fmArt"); if (!box) return;
+  const note = $("#fmArtNote"), undo = $("#fmArtUndo");
+  const set = (html, text) => { box.innerHTML = html; if (note) note.textContent = text; };
+  const pending = sel[0].art, same = sel.every(i => JSON.stringify(i.art) === JSON.stringify(pending));
+  if (undo) undo.classList.toggle("hidden", !sel.some(i => i.art));
+  if (pending && same){
+    if (pending.action === "remove"){ set(`<svg><use href="#i-note"/></svg><div class="none">Will be removed</div>`, "The artwork will be removed when you save or convert."); return; }
+    set(`<img src="${pending.dataUrl}" alt="New album artwork">`, `New artwork${pending.w ? ` (${pending.w} × ${pending.h})` : ""} – saved when you save or convert.`);
+    return;
+  }
+  if (!same){ set(`<svg><use href="#i-note"/></svg><div class="none">Mixed</div>`, "Some songs have new artwork."); return; }
+  const cAlbum = fmCommon(sel, "album");
+  if (sel.length > 1 && cAlbum === undefined){ set(`<svg><use href="#i-note"/></svg><div class="none">Multiple albums</div>`, "Choosing artwork sets it for every selected song."); return; }
+  const it = sel[0];
+  let art = FM.artCache.get(it.key);
+  if (art === undefined){
+    set(`<svg><use href="#i-note"/></svg>`, "");
+    try { art = await api("fmArtwork", it.source, it.path, it.trackId || 0); } catch(e){ art = null; }
+    FM.artCache.set(it.key, art);
+    if (!box.isConnected || !FM.sel.has(it.key)) return;
+  }
+  if (!art){ set(`<svg><use href="#i-note"/></svg><div class="none">No artwork</div>`, "You can also drop a picture here."); return; }
+  set(`<img src="${art.dataUrl}" alt="Album artwork" title="${art.width} × ${art.height}">`, `${art.width} × ${art.height}${art.source === "ipod" ? " · on the iPod" : ""}. You can also drop a picture here.`);
+}
+
+async function fmRun(convert){
+  if (fmBusy()) return;
+  const sel = fmSelected();
+  let items = convert ? (sel.length ? sel : FM.items) : FM.items.filter(fmDirty);
+  items = items.filter(i => !i.error);
+  if (!items.length) return;
+  const req = {
+    convert, format: FM.format, quality: FM.quality[FM.format] || "", addToIPod: !!($("#fmAddIPod") && $("#fmAddIPod").checked),
+    items: items.map(it => {
+      const patch = {};
+      for (const [k, v] of Object.entries(it.edits || {})) patch[k] = v;
+      return {key: it.key, source: it.source, path: it.path, trackId: it.trackId || 0, patch,
+        art: it.art ? it.art.action : "", artPath: it.art && it.art.path || ""};
+    }),
+  };
+  const go = async () => {
+    for (const it of items) it.status = {kind: "work", text: convert ? "Waiting…" : "Saving…", short: convert ? "Waiting…" : "Saving…"};
+    fmRenderRows(true);
+    try { await api("fmRun", req); }
+    catch(e){
+      for (const it of items) it.status = null;
+      fmRenderRows(true);
+      alertSheet(convert ? "Can’t convert yet" : "Couldn’t save the changes", e.message);
+    }
+  };
+  const f = FM.encoders && FM.encoders.formats.find(x => x.id === FM.format);
+  const fromIPod = items.filter(i => i.source === "ipod").length;
+  if (convert && fromIPod && f && f.ipod){
+    sheet(`<div class="sheet-h">Replace ${plural(fromIPod, "song")} on the iPod?</div><div class="sheet-b">
+      <p>${fromIPod === 1 ? "The song" : "These songs"} will be converted to ${esc(f.label)} and replaced on the iPod. ${fromIPod === 1 ? "Its" : "Their"} play counts, ratings and playlists stay as they are.</p>
+      <p>The original files are copied to the iPod Originals folder first, so you can go back if you need to.</p></div>
+      <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Convert and Replace</button></div>`,
+      (v, close) => { v.querySelector("[data-c]").onclick = close; v.querySelector("[data-ok]").onclick = () => { close(); go(); }; });
+    return;
+  }
+  go();
+}
+function fmApplyOutcomes(r){
+  const convert = r.job === "convert";
+  const seen = new Set();
+  for (const o of r.fm || []){
+    const it = FM.byKey.get(o.key); if (!it) continue;
+    seen.add(o.key);
+    if (o.ok){
+      // Converting a computer song leaves its own file as it was, so its
+      // edits stay pending (they can still be saved to it).
+      if (!(convert && it.source === "file")){ it.edits = {}; it.art = null; }
+      FM.artCache.delete(o.key);
+      if (o.item && !o.item.error){ it.info = o.item.info; it.path = o.item.path; }
+      const name = o.output ? o.output.split(/[\\/]/).pop() : "";
+      it.status = convert ? {kind: "ok", text: (o.note ? o.note + ". " : "") + (o.output ? "Saved as " + o.output : "Converted"), short: o.note ? "Copied" : "Converted", output: o.output}
+                          : {kind: "ok", text: "Changes saved", short: "Saved"};
+    } else {
+      it.status = {kind: "err", text: o.error || "Failed", short: "Failed"};
+    }
+  }
+  for (const it of FM.items) if (it.status && it.status.kind === "work" && !seen.has(it.key)) it.status = r.cancelled ? {kind: "err", text: "Stopped", short: "Stopped"} : null;
+  if (S.view === "fm") renderMain();
+}
+async function fmHandleDrop(paths){
+  S.flash = null; renderLCD();
+  paths = paths || [];
+  const images = paths.filter(p => IMG_EXT.test(p)), songs = paths.filter(p => !IMG_EXT.test(p));
+  if (images.length && FM.sel.size){
+    try { const img = await api("fmImagePreview", images[0]); fmSetArt(fmSelected(), {action:"set", path: img.path, dataUrl: img.art.dataUrl, w: img.art.width, h: img.art.height}); flash("New artwork", `for ${plural(FM.sel.size, "song")}`); }
+    catch(e){ alertSheet("Couldn’t use the picture", e.message); }
+  } else if (images.length && !songs.length){
+    alertSheet("Select songs first", "Select the songs the picture is for, then drop it again.");
+  }
+  if (songs.length) await fmAddPaths(songs);
+}
+async function fmLoadEncoders(){
+  try { FM.encoders = await api("encoders"); } catch(e){ FM.encoders = null; }
+  if (FM.encoders && !FM.encoders.formats.some(f => f.id === FM.format)) FM.format = "aac";
+  if (S.view === "fm") fmRenderSide();
+}
+
 /* ------------------------------------------------------------------ jobs / events */
 function jobSummary(r){
   const n = r.ok;
@@ -1525,11 +2101,21 @@ function jobSummary(r){
     case "remove": return [`Removed ${plural(n, "song")}`, ""];
     case "update": return [n === 1 ? "Song updated" : `Updated ${plural(n, "song")}`, ""];
     case "export": return [`Copied ${plural(n, "song")}`, "to your computer"];
+    case "convert": {
+      const added = (r.notes || []).map(x => /^Added (\d+) converted/.exec(x)).find(Boolean);
+      return [n ? `Converted ${plural(n, "song")}` : "Nothing converted", added ? `Added ${plural(+added[1], "song")} to the iPod` : n ? "Copies are in Converted Music" : ""];
+    }
+    case "retag": return [n ? `Saved ${plural(n, "song")}` : "Nothing saved", ""];
   }
   return ["Done", ""];
 }
 async function onEvent(e){
-  if (e.type === "progress"){ S.busy = {job:e.job, done:e.done||0, total:e.total||0, label:e.label}; renderLCD(); updateButtons(); return; }
+  if (e.type === "progress"){
+    const started = !S.busy;
+    S.busy = {job:e.job, done:e.done||0, total:e.total||0, label:e.label}; renderLCD(); updateButtons();
+    if (started && S.view === "fm") renderMain();
+    return;
+  }
   if (e.type === "done"){
     S.busy = null;
     const r = e.result;
@@ -1538,7 +2124,9 @@ async function onEvent(e){
     if (r.error) alertSheet("Something went wrong", r.error + (r.ok ? ` (${plural(r.ok, "song")} finished before this happened.)` : ""));
     const [a, b] = jobSummary(r);
     flash(r.cancelled ? a + " (stopped)" : a, b);
-    const issues = r.errors || [], notes = (r.notes || []).filter(x => !/already on the iPod/.test(x));
+    if (r.job === "convert" || r.job === "retag") fmApplyOutcomes(r);
+    if (r.job === "convert" || r.job === "retag" || r.job === "add") fmLoadEncoders();
+    const issues = r.errors || [], notes = (r.notes || []).filter(x => !/already on the iPod/.test(x) && !/^Converted copies are in/.test(x) && !/^Added \d+ converted/.test(x));
     if (issues.length || (notes.length && r.job !== "add") || (notes.length && !r.ok)){
       sheet(`<div class="sheet-h">${issues.length ? (issues.length === 1 ? "1 song had a problem" : `${issues.length} songs had problems`) : a}</div><div class="sheet-b">
         ${notes.map(n => `<p>${esc(n)}</p>`).join("")}
@@ -1600,14 +2188,16 @@ function renderStats(){
 function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); renderStats(); updateButtons(); }
 
 /* ------------------------------------------------------------------ toolbar & keys */
-$("#bOptions").onclick = openOptions;
+$("#bOptions").onclick = () => openOptions();
+$("#bFormats").onclick = () => { if (S.view !== "fm") setView("fm"); };
 $("#bAdd").onclick = addSongs; $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
-$("#bBrowse").onclick = () => { S.browser = !S.browser; store.set("browser", S.browser); S.bsel = {genre:null, artist:null, album:null}; S.listDirty = true; if (S.view === "summary") S.view = "music"; renderAll(); };
+$("#bBrowse").onclick = () => { if (S.view === "fm"){ setView("music"); if (S.browser) return; } S.browser = !S.browser; store.set("browser", S.browser); S.bsel = {genre:null, artist:null, album:null}; S.listDirty = true; if (S.view === "summary") S.view = "music"; renderAll(); };
 let searchT;
 $("#search").addEventListener("input", e => {
   clearTimeout(searchT);
   $("#searchBox").classList.toggle("has", !!e.target.value);
   searchT = setTimeout(() => { S.search = e.target.value.trim(); S.listDirty = true; S.bsel = {genre:null, artist:null, album:null};
+    if (S.view === "fm"){ fmBuildList(); fmRenderRows(true); return; }
     if (S.view === "summary") { S.view = "music"; renderAll(); } else { if (S.browser) renderBrowser(); const sc = $("#tscroll"); if (sc) sc.scrollTop = 0; renderRows(true); } }, 140);
 });
 $("#search").addEventListener("keydown", e => { if (e.key === "Escape"){ $("#search").value = ""; $("#search").dispatchEvent(new Event("input")); } if (e.key === "ArrowDown"){ const sc = $("#tscroll"); sc && sc.focus(); } });
@@ -1623,7 +2213,8 @@ addEventListener("keydown", e => {
   if (e.ctrlKey && k === ","){ e.preventDefault(); openOptions(); }
   if (e.ctrlKey && k === "f"){ e.preventDefault(); $("#search").focus(); $("#search").select(); }
   if (e.ctrlKey && k === "o"){ e.preventDefault(); addSongs(); }
-  if (e.ctrlKey && k === "i"){ e.preventDefault(); openInfo(); }
+  if (e.ctrlKey && k === "i"){ e.preventDefault(); if (S.view !== "fm") openInfo(); }
+  if (e.ctrlKey && k === "m"){ e.preventDefault(); if (S.view !== "fm") setView("fm"); }
   if (e.ctrlKey && k === "b"){ e.preventDefault(); $("#bBrowse").click(); }
 });
 addEventListener("contextmenu", e => { if (!e.target.closest("input,textarea")) e.preventDefault(); });

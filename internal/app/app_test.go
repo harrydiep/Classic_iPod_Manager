@@ -15,6 +15,8 @@ type fakePlat struct {
 	dragged            []DragFile
 	serial             string
 	battErr            error
+	anyPick            []string
+	opened             string
 }
 
 func (p *fakePlat) Roots() []string { return []string{p.root} }
@@ -33,6 +35,10 @@ func (p *fakePlat) PickFolder(t string) (string, error) {
 }
 func (p *fakePlat) Reveal(string) error        { return nil }
 func (p *fakePlat) DragOut(f []DragFile) error { p.dragged = f; return nil }
+func (p *fakePlat) PickAny(title string, f []FileFilter, multi bool) ([]string, error) {
+	return p.anyPick, nil
+}
+func (p *fakePlat) OpenFolder(path string) error { p.opened = path; return nil }
 func (p *fakePlat) BatteryReport(serial string) (iap.Battery, string, error) {
 	b, err := p.Battery(serial)
 	return b, "report for " + serial, err

@@ -29,6 +29,7 @@ type devPlatform struct {
 	pick      string
 	exportDir string
 	battery   string
+	image     string
 }
 
 func (p *devPlatform) Roots() []string { return p.roots }
@@ -109,6 +110,32 @@ func (p *devPlatform) BatteryReport(serial string) (iap.Battery, string, error) 
 	return b, r, err
 }
 
+func (p *devPlatform) PickAny(title string, filters []app.FileFilter, multi bool) ([]string, error) {
+	// Pictures come from -image; songs from the -pick folder (every format).
+	if len(filters) > 0 && strings.Contains(filters[0].Pattern, "*.jpg") {
+		if p.image == "" {
+			return nil, errors.New("start with -image <file> to simulate choosing a picture")
+		}
+		return []string{p.image}, nil
+	}
+	if p.pick == "" {
+		return nil, errors.New("start with -pick <folder> to simulate the file dialog")
+	}
+	var out []string
+	entries, _ := os.ReadDir(p.pick)
+	for _, e := range entries {
+		if !e.IsDir() && media.DecodableExt(e.Name()) {
+			out = append(out, filepath.Join(p.pick, e.Name()))
+		}
+	}
+	return out, nil
+}
+
+func (p *devPlatform) OpenFolder(path string) error {
+	log.Printf("open folder %s", path)
+	return nil
+}
+
 func (p *devPlatform) Reveal(path string) error {
 	log.Printf("reveal %s", path)
 	return nil
@@ -155,9 +182,11 @@ func main() {
 	export := flag.String("export", os.TempDir(), "folder used by the simulated export dialog")
 	backups := flag.String("backups", filepath.Join(os.TempDir(), "podmanager-backups"), "backup folder")
 	battery := flag.String("battery", "", `simulated battery, e.g. "72,charging" (empty: not reported)`)
+	image := flag.String("image", "", "picture returned by the simulated picture dialog")
+	mainDir := flag.String("main", filepath.Join(os.TempDir(), "PodManager-main"), "PodManager's main folder (encoders, converted songs)")
 	flag.Parse()
 
-	plat := &devPlatform{pick: *pick, exportDir: *export, battery: *battery}
+	plat := &devPlatform{pick: *pick, exportDir: *export, battery: *battery, image: *image}
 	for _, r := range strings.Split(*roots, ",") {
 		if r = strings.TrimSpace(r); r != "" {
 			plat.roots = append(plat.roots, r)
@@ -169,6 +198,7 @@ func main() {
 		h.publish(b)
 	})
 	a.SetPrefsFile(filepath.Join(*backups, "settings.json"))
+	a.SetMainFolder(*mainDir)
 	methods := a.Methods()
 	// Browsers don't reveal dropped files' paths, so in dev mode dropped
 	// names are looked up in the -pick folder.

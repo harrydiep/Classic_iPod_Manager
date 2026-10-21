@@ -64,6 +64,7 @@ func main() {
 	}
 	defer w.Destroy()
 	a.SetPrefsFile(filepath.Join(dataDir, "settings.json"))
+	a.SetMainFolder(mainFolder(dataDir))
 	configureBrowser(w)
 	// Files dropped from Explorer arrive with their paths (see the patched
 	// go-webview2 in third_party); check them and let the page confirm.
@@ -122,6 +123,25 @@ func main() {
 	go a.Watch(stop)
 	w.Run()
 	close(stop)
+}
+
+// mainFolder is the folder PodManager.exe is in, where encoders and
+// converted songs go. When that can't be written to (for example under
+// Program Files), %LOCALAPPDATA%\PodManager is used instead.
+func mainFolder(fallback string) string {
+	exe, err := os.Executable()
+	if err == nil {
+		if real, err := filepath.EvalSymlinks(exe); err == nil {
+			exe = real
+		}
+		dir := filepath.Dir(exe)
+		if f, err := os.CreateTemp(dir, ".podmanager-write-test-*"); err == nil {
+			f.Close()
+			os.Remove(f.Name())
+			return dir
+		}
+	}
+	return fallback
 }
 
 const bridgeJS = `

@@ -13,7 +13,7 @@ import (
 // an .m4a/.m4b file. Unmanaged items (cover art, iTunNORM, …) are kept.
 // When the movie header sits in front of the audio data, chunk offsets are
 // adjusted (or a following 'free' atom absorbs the size change).
-func writeMP4Tags(path string, t Tags) error {
+func writeMP4Tags(path string, t Tags, art ArtEdit) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func writeMP4Tags(path string, t Tags) error {
 	}
 	f.Close()
 
-	newMoov, err := rebuildMoov(raw, moov.headerSize, t)
+	newMoov, err := rebuildMoov(raw, moov.headerSize, t, art)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func encodeBoxes(list []box) []byte {
 	return b.Bytes()
 }
 
-func rebuildMoov(raw []byte, hs int64, t Tags) ([]byte, error) {
+func rebuildMoov(raw []byte, hs int64, t Tags, art ArtEdit) ([]byte, error) {
 	kids, err := parseBoxes(raw[hs:])
 	if err != nil {
 		return nil, err
@@ -243,7 +243,7 @@ func rebuildMoov(raw []byte, hs int64, t Tags) ([]byte, error) {
 			return nil, err
 		}
 	}
-	items = applyMP4(items, t)
+	items = applyMP4(items, t, art)
 	ilst := box{"ilst", encodeBoxes(items)}
 	if ii >= 0 {
 		metaKids[ii] = ilst
@@ -279,7 +279,7 @@ func dataBox(typ uint32, payload []byte) []byte {
 	return encodeBox("data", append(b, payload...))
 }
 
-func applyMP4(items []box, t Tags) []box {
+func applyMP4(items []box, t Tags, art ArtEdit) []box {
 	managed := map[string]bool{"\xa9nam": true, "\xa9ART": true, "\xa9alb": true, "aART": true, "\xa9gen": true,
 		"gnre": true, "\xa9wrt": true, "\xa9day": true, "trkn": true, "disk": true, "\xa9cmt": true,
 		"cpil": true, "tmpo": true, "\xa9grp": true}
@@ -320,10 +320,18 @@ func applyMP4(items []box, t Tags) []box {
 		out = append(out, box{"cpil", dataBox(21, []byte{1})})
 	}
 	str("\xa9cmt", t.Comment)
-	for _, it := range items {
-		if !managed[it.typ] {
-			out = append(out, it)
+	if art.Set != nil {
+		typ := uint32(13) // JPEG
+		if art.Set.mime() == "image/png" {
+			typ = 14
 		}
+		out = append(out, box{"covr", dataBox(typ, art.Set.Data)})
+	}
+	for _, it := range items {
+		if managed[it.typ] || (art.active() && it.typ == "covr") {
+			continue
+		}
+		out = append(out, it)
 	}
 	return out
 }
@@ -386,7 +394,30 @@ func shiftChunkOffsets(moov []byte, from, delta int64) error {
 
 // WriteTags writes metadata into an audio file. WAV and AIFF files are not
 // supported (the iPod database still holds the edited values).
-func WriteTags(path string, t Tags) error {
+func WriteTags(path string, t Tags) error { return WriteTagsArt(path, t, ArtEdit{}) }
+
+// ArtEdit says what to do with a file's embedded cover picture. The zero
+// value leaves it alone.
+type ArtEdit struct {
+	Set    *Picture // replace any embedded pictures with this one
+	Remove bool     // remove embedded pictures
+}
+
+func (e ArtEdit) active() bool { return e.Set != nil || e.Remove }
+
+func (p *Picture) mime() string {
+	if m := sniffImage(p.Data); m != "" {
+		return m
+	}
+	if p.MIME != "" {
+		return p.MIME
+	}
+	return "image/jpeg"
+}
+
+// WriteTagsArt writes metadata and, optionally, changes the embedded cover.
+// MP3 (ID3v2), MP4/M4A, FLAC and Ogg Vorbis/Opus files are supported.
+func WriteTagsArt(path string, t Tags, art ArtEdit) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -399,11 +430,15 @@ func WriteTags(path string, t Tags) error {
 	}
 	switch {
 	case string(magic[4:8]) == "ftyp":
-		return writeMP4Tags(path, t)
+		return writeMP4Tags(path, t, art)
+	case string(magic[0:4]) == "fLaC":
+		return writeFLACTags(path, t, art)
+	case string(magic[0:4]) == "OggS":
+		return writeOggTags(path, t, art)
 	case string(magic[0:4]) == "RIFF", string(magic[0:4]) == "FORM":
 		return errNoTagSupport
 	default:
-		return writeMP3Tags(path, t)
+		return writeMP3Tags(path, t, art)
 	}
 }
 

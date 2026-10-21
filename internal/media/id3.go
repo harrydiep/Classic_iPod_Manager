@@ -21,7 +21,7 @@ type id3Frame struct {
 // writeMP3Tags rewrites the ID3v2 tag of an MP3 file, keeping every frame it
 // does not manage (artwork, ReplayGain, iTunes data…) and updates an
 // existing ID3v1 tag.
-func writeMP3Tags(path string, t Tags) error {
+func writeMP3Tags(path string, t Tags, art ArtEdit) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func writeMP3Tags(path string, t Tags) error {
 	}
 	f.Close()
 
-	frames = applyID3(frames, version, t)
+	frames = applyID3(frames, version, t, art)
 	body := encodeID3Frames(frames, version)
 
 	inPlace := oldSize > 0 && len(body)+10 <= oldSize && hdr[5]&0x10 == 0
@@ -313,7 +313,7 @@ func pair(n, total int) string {
 	return strconv.Itoa(n)
 }
 
-func applyID3(frames []id3Frame, ver byte, t Tags) []id3Frame {
+func applyID3(frames []id3Frame, ver byte, t Tags, art ArtEdit) []id3Frame {
 	managed := map[string]bool{"TIT2": true, "TPE1": true, "TALB": true, "TPE2": true, "TCON": true,
 		"TCOM": true, "TIT1": true, "TRCK": true, "TPOS": true, "TYER": true, "TDRC": true, "TBPM": true, "TCMP": true}
 	var out []id3Frame
@@ -322,6 +322,9 @@ func applyID3(frames []id3Frame, ver byte, t Tags) []id3Frame {
 			continue
 		}
 		if fr.id == "COMM" && commIsPlain(fr.data) {
+			continue
+		}
+		if art.active() && (fr.id == "APIC" || fr.id == "PIC") {
 			continue
 		}
 		out = append(out, fr)
@@ -356,6 +359,15 @@ func applyID3(frames []id3Frame, ver byte, t Tags) []id3Frame {
 	}
 	if t.Comment != "" {
 		add = append(add, commFrame(t.Comment, ver))
+	}
+	if art.Set != nil {
+		// APIC: text encoding, MIME type, picture type 3 (front cover),
+		// empty description, picture data.
+		d := []byte{0}
+		d = append(d, art.Set.mime()...)
+		d = append(d, 0, 3, 0)
+		d = append(d, art.Set.Data...)
+		add = append(add, id3Frame{id: "APIC", data: d})
 	}
 	return append(add, out...)
 }

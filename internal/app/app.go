@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +23,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.4.2"
+const Version = "1.5.0"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -39,6 +40,16 @@ type Platform interface {
 	// BatteryReport does the same while writing down every step, for
 	// troubleshooting.
 	BatteryReport(serial string) (iap.Battery, string, error)
+	// PickAny shows an Open dialog with the given file types.
+	PickAny(title string, filters []FileFilter, multi bool) ([]string, error)
+	// OpenFolder shows a folder in Explorer.
+	OpenFolder(path string) error
+}
+
+// FileFilter is one entry of an Open dialog's file type list.
+type FileFilter struct {
+	Name    string // "Images"
+	Pattern string // "*.jpg;*.png"
 }
 
 // Event is pushed to the UI.
@@ -56,14 +67,15 @@ type Event struct {
 
 // JobResult summarises a finished job.
 type JobResult struct {
-	Job       string     `json:"job"`
-	OK        int        `json:"ok"`
-	Skipped   int        `json:"skipped"`
-	Cancelled bool       `json:"cancelled"`
-	Errors    []JobError `json:"errors"`
-	Notes     []string   `json:"notes"`
-	Elapsed   float64    `json:"elapsed"`
-	Error     string     `json:"error,omitempty"` // fatal error
+	Job       string      `json:"job"`
+	OK        int         `json:"ok"`
+	Skipped   int         `json:"skipped"`
+	Cancelled bool        `json:"cancelled"`
+	Errors    []JobError  `json:"errors"`
+	Notes     []string    `json:"notes"`
+	Elapsed   float64     `json:"elapsed"`
+	Error     string      `json:"error,omitempty"` // fatal error
+	FM        []FMOutcome `json:"fm,omitempty"`    // Format Manager: what happened to each song
 }
 
 // JobError is one per-file failure.
@@ -147,6 +159,8 @@ type App struct {
 	prefsPath string
 	zoomFn    func(float64)
 	batt      batteryCache
+	mainDir   string
+	stopFn    context.CancelFunc // cancels the running job's external programs
 }
 
 // New creates the app. emit is called (from any goroutine) to push events.
@@ -157,29 +171,41 @@ func New(p Platform, backupDir string, emit func(Event)) *App {
 // Methods returns the operations callable from the UI, keyed by name.
 func (a *App) Methods() map[string]interface{} {
 	return map[string]interface{}{
-		"version":       func() string { return Version },
-		"devices":       a.Devices,
-		"open":          a.Open,
-		"library":       a.Library,
-		"initialize":    a.Initialize,
-		"addFiles":      a.AddFiles,
-		"addFolder":     a.AddFolder,
-		"addPaths":      a.AddPaths,
-		"remove":        a.Remove,
-		"update":        a.Update,
-		"export":        a.Export,
-		"cancel":        a.Cancel,
-		"eject":         a.Eject,
-		"rename":        a.Rename,
-		"reveal":        a.Reveal,
-		"close":         a.Close,
-		"prefs":         a.Prefs,
-		"artwork":       a.Artwork,
-		"dragOut":       a.DragOut,
-		"battery":       a.Battery,
-		"batteryReport": a.BatteryReport,
-		"setScale":      a.SetScale,
-		"setPref":       a.SetPref,
+		"version":        func() string { return Version },
+		"devices":        a.Devices,
+		"open":           a.Open,
+		"library":        a.Library,
+		"initialize":     a.Initialize,
+		"addFiles":       a.AddFiles,
+		"addFolder":      a.AddFolder,
+		"addPaths":       a.AddPaths,
+		"remove":         a.Remove,
+		"update":         a.Update,
+		"export":         a.Export,
+		"cancel":         a.Cancel,
+		"eject":          a.Eject,
+		"rename":         a.Rename,
+		"reveal":         a.Reveal,
+		"close":          a.Close,
+		"prefs":          a.Prefs,
+		"artwork":        a.Artwork,
+		"dragOut":        a.DragOut,
+		"battery":        a.Battery,
+		"encoders":       a.Encoders,
+		"setEncoder":     a.SetEncoder,
+		"openFolder":     a.OpenFolder,
+		"fmInspect":      a.FMInspect,
+		"fmFromIPod":     a.FMFromIPod,
+		"fmPickFiles":    a.FMPickFiles,
+		"fmPickFolder":   a.FMPickFolder,
+		"fmPickImage":    a.FMPickImage,
+		"fmImagePreview": a.FMImagePreview,
+		"fmArtwork":      a.FMArtwork,
+		"fmRun":          a.FMRun,
+		"revealFile":     a.RevealFile,
+		"batteryReport":  a.BatteryReport,
+		"setScale":       a.SetScale,
+		"setPref":        a.SetPref,
 	}
 }
 
@@ -410,13 +436,28 @@ func (a *App) Reveal(id uint32) error {
 }
 
 // Cancel asks the running job to stop after the current item.
-func (a *App) Cancel() { a.cancel.Store(true) }
+func (a *App) Cancel() {
+	a.cancel.Store(true)
+	a.mu.Lock()
+	if a.stopFn != nil {
+		a.stopFn()
+	}
+	a.mu.Unlock()
+}
 
 // ---------------------------------------------------------------- jobs
 
 func (a *App) startJob(name string, allowReadOnly bool, fn func(d *ipod.Device, res *JobResult) error) error {
+	return a.startTask(name, allowReadOnly, true, func(ctx context.Context, d *ipod.Device, res *JobResult) error {
+		return fn(d, res)
+	})
+}
+
+// startTask runs a background job. With needDev false it also runs when no
+// iPod is open (d is then nil). ctx is cancelled by Cancel.
+func (a *App) startTask(name string, allowReadOnly, needDev bool, fn func(ctx context.Context, d *ipod.Device, res *JobResult) error) error {
 	a.mu.Lock()
-	if a.dev == nil {
+	if a.dev == nil && needDev {
 		a.mu.Unlock()
 		return errors.New("no iPod is open")
 	}
@@ -424,13 +465,15 @@ func (a *App) startJob(name string, allowReadOnly bool, fn func(d *ipod.Device, 
 		a.mu.Unlock()
 		return errors.New("another task is still running")
 	}
-	if a.dev.ReadOnly != "" && !allowReadOnly {
+	if needDev && a.dev.ReadOnly != "" && !allowReadOnly {
 		a.mu.Unlock()
 		return errors.New(a.dev.ReadOnly)
 	}
 	a.busy = true
 	a.cancel.Store(false)
 	d := a.dev
+	ctx, stop := context.WithCancel(context.Background())
+	a.stopFn = stop
 	a.mu.Unlock()
 	go func() {
 		start := time.Now()
@@ -441,7 +484,7 @@ func (a *App) startJob(name string, allowReadOnly bool, fn func(d *ipod.Device, 
 					res.Error = fmt.Sprint("internal error: ", r)
 				}
 			}()
-			if err := fn(d, res); err != nil {
+			if err := fn(ctx, d, res); err != nil {
 				res.Error = err.Error()
 			}
 		}()
@@ -449,7 +492,9 @@ func (a *App) startJob(name string, allowReadOnly bool, fn func(d *ipod.Device, 
 		res.Elapsed = time.Since(start).Seconds()
 		a.mu.Lock()
 		a.busy = false
+		a.stopFn = nil
 		a.mu.Unlock()
+		stop()
 		a.emit(Event{Type: "done", Job: name, Result: res})
 	}()
 	return nil
@@ -533,6 +578,15 @@ func (a *App) AddPaths(paths []string) error {
 			res.Notes = append(res.Notes, "No songs were found.")
 			return nil
 		}
+		return a.addFiles(d, "add", files, res)
+	})
+}
+
+// addFiles copies song files to the iPod and adds them to its database,
+// skipping songs that are already there. Covers embedded in the files are
+// added to the iPod's artwork database.
+func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResult) error {
+	{
 		existing := map[dupKey][]uint32{}
 		a.withDB(func() {
 			for _, t := range d.DB.Tracks {
@@ -547,7 +601,7 @@ func (a *App) AddPaths(paths []string) error {
 			if a.cancel.Load() {
 				break
 			}
-			a.progress("add", i, len(files), filepath.Base(f))
+			a.progress(job, i, len(files), filepath.Base(f))
 			info, err := media.Probe(f)
 			if err != nil {
 				res.Errors = append(res.Errors, JobError{f, err.Error()})
@@ -590,8 +644,9 @@ func (a *App) AddPaths(paths []string) error {
 			if info.Audiobook {
 				mt = 8
 			}
+			var nt *itdb.Track
 			a.withDB(func() {
-				d.DB.NewTrack(itdb.NewTrackInfo{
+				nt = d.DB.NewTrack(itdb.NewTrackInfo{
 					Location: loc, FileTypeCode: info.FileTypeCode, Kind: info.Kind, Size: uint32(info.Size),
 					LengthMs: info.LengthMs, Bitrate: info.Bitrate, SampleRate: info.SampleRate, VBR: info.VBR,
 					IsAAC: info.Format != "mp3", SampleCount: info.SampleCount, MediaType: mt, RememberPos: info.Audiobook,
@@ -602,6 +657,7 @@ func (a *App) AddPaths(paths []string) error {
 					BPM: uint16(clampU(tg.BPM)), Compilation: tg.Compilation,
 				})
 			})
+			a.addCover(d, nt, f, res)
 			existing[k] = append(existing[k], info.LengthMs)
 			res.OK++
 			sinceSave++
@@ -614,7 +670,7 @@ func (a *App) AddPaths(paths []string) error {
 				sinceSave = 0
 			}
 		}
-		a.progress("add", len(files), len(files), "Updating iPod database…")
+		a.progress(job, len(files), len(files), "Updating iPod database…")
 		var err error
 		a.withDB(func() { err = d.Save() })
 		if err != nil {
@@ -624,7 +680,23 @@ func (a *App) AddPaths(paths []string) error {
 			res.Notes = append(res.Notes, fmt.Sprintf("%d song(s) were already on the iPod and were skipped.", res.Skipped))
 		}
 		return nil
-	})
+	}
+}
+
+// addCover puts a song file's embedded cover into the iPod's artwork
+// database, so the iPod shows it. Failures are noted, not fatal.
+func (a *App) addCover(d *ipod.Device, t *itdb.Track, file string, res *JobResult) {
+	if t == nil || !d.CanWriteArtwork() {
+		return
+	}
+	pic, err := media.ReadArtwork(file)
+	if err != nil || pic == nil {
+		return
+	}
+	a.withDB(func() { err = d.SetArtwork(t, pic.Data) })
+	if err != nil && !strings.Contains(strings.Join(res.Notes, "\n"), "album art") {
+		res.Notes = append(res.Notes, "Some album art couldn't be added to the iPod: "+err.Error())
+	}
 }
 
 func clampU(v int) int {

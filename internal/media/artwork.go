@@ -25,6 +25,10 @@ func ReadArtwork(path string) (*Picture, error) {
 		return nil, nil
 	}
 	switch {
+	case string(magic[0:4]) == "fLaC":
+		return flacPictureOf(f), nil
+	case string(magic[0:4]) == "OggS":
+		return oggPicture(f), nil
 	case string(magic[4:8]) == "ftyp":
 		if d, ok := mp4ItemData(f, "covr"); ok && len(d) > 8 {
 			return &Picture{Data: d, MIME: sniffImage(d)}, nil

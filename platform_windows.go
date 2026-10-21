@@ -13,6 +13,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"podmanager/internal/app"
 )
 
 var (
@@ -156,6 +158,27 @@ func (p *winPlatform) PickFiles() ([]string, error) {
 		})
 	})
 	return res, err
+}
+
+// PickAny shows an Open dialog with the given file types.
+func (p *winPlatform) PickAny(title string, filters []app.FileFilter, multi bool) ([]string, error) {
+	var specs []filterSpec
+	for _, f := range filters {
+		specs = append(specs, filterSpec{f.Name, f.Pattern})
+	}
+	var res []string
+	var err error
+	p.onUI(func() {
+		res, err = fileDialog(p.hwnd, title, false, multi, specs)
+	})
+	return res, err
+}
+
+// OpenFolder shows a folder in Explorer.
+func (p *winPlatform) OpenFolder(path string) error {
+	cmd := exec.Command("explorer.exe")
+	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: `explorer.exe "` + path + `"`}
+	return cmd.Start()
 }
 
 func (p *winPlatform) PickFolder(title string) (string, error) {

@@ -208,6 +208,72 @@ func (t *Track) SkipCount() uint32       { return t.u32(0x9C) }
 func (t *Track) MediaType() uint32       { return t.u32(0xD0) }
 func (t *Track) HeaderLen() int          { return len(t.header) }
 
+// HasArtwork reports whether the iPod should show a cover for the track.
+func (t *Track) HasArtwork() bool { return t.u8(0xA4) == 1 && t.u16(0x7C) > 0 }
+
+// ArtworkLink is the ArtworkDB image (mhii) ID the track points at.
+func (t *Track) ArtworkLink() uint32 { return t.u32(0x160) }
+
+// SetArtwork records that the track has a cover in the ArtworkDB: the image
+// ID, and the size of the source picture. It mirrors what libgpod writes.
+func (t *Track) SetArtwork(mhii uint32, sourceSize uint32) {
+	t.setU16(0x7C, 1)
+	t.setU32(0x80, sourceSize)
+	t.setU8(0xA4, 1)
+	t.setU32(0x160, mhii)
+}
+
+// ClearArtwork marks the track as having no cover.
+func (t *Track) ClearArtwork() {
+	t.setU16(0x7C, 0)
+	t.setU32(0x80, 0)
+	t.setU8(0xA4, 2)
+	t.setU32(0x160, 0)
+}
+
+// FileInfo describes a song file for SetFile.
+type FileInfo struct {
+	Location     string // iPod style path
+	FileTypeCode string // 4 chars, e.g. "M4A "
+	Kind         string
+	Size         uint32
+	LengthMs     uint32
+	Bitrate      uint32
+	SampleRate   uint32
+	VBR          bool
+	IsAAC        bool
+	SampleCount  uint64
+}
+
+// SetFile points the track at a different file (after converting it),
+// keeping its identity, ratings, play counts and playlists.
+func (t *Track) SetFile(fi FileInfo) {
+	code := []byte((fi.FileTypeCode + "    ")[:4])
+	t.setU32(0x18, uint32(code[0])<<24|uint32(code[1])<<16|uint32(code[2])<<8|uint32(code[3]))
+	if fi.IsAAC {
+		t.setU8(0x1C, 0)
+		t.setU8(0x1D, 0)
+	} else {
+		t.setU8(0x1C, 1)
+		t.setU8(0x1D, b2u8(fi.VBR))
+	}
+	t.SetSize(fi.Size)
+	t.SetLengthMs(fi.LengthMs)
+	t.setU32(0x38, fi.Bitrate)
+	t.setU32(0x3C, fi.SampleRate<<16)
+	t.setU32(0x88, math.Float32bits(float32(fi.SampleRate)))
+	t.setU64(0xBC, fi.SampleCount)
+	// gapless playback data belongs to the old encoding
+	t.setU32(0xB8, 0) // pregap
+	t.setU32(0xC8, 0) // postgap
+	t.setU32(0xF8, 0)
+	t.setU32(0xFC, 0)
+	t.setU32(0x100, 0)
+	t.SetStr(MhodPath, fi.Location)
+	t.SetStr(MhodFiletype, fi.Kind)
+	t.SetTimeModified(MacTime(time.Now()))
+}
+
 // Str returns the string mhod of the given type ("" when absent).
 func (t *Track) Str(typ uint32) string {
 	for _, m := range t.Mhods {
@@ -319,6 +385,7 @@ func (db *DB) NewTrack(info NewTrackInfo) *Track {
 	t.SetBPM(info.BPM)
 	t.setU32(0x88, math.Float32bits(float32(info.SampleRate)))
 	t.setU8(0xA4, 2) // has artwork: 2 = no
+	t.setU16(0x7E, 0xFFFF)
 	if info.RememberPos {
 		t.setU8(0xA6, 1)
 		t.setU8(0xA5, 1) // skip when shuffling

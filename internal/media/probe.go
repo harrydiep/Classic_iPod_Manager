@@ -47,6 +47,8 @@ type Info struct {
 	SampleRate   uint32
 	VBR          bool
 	SampleCount  uint64
+	Channels     int // 0 if unknown
+	Bits         int // bits per sample for PCM and lossless audio, 0 for lossy
 	Audiobook    bool
 	Size         int64
 	Tags         Tags
@@ -197,6 +199,24 @@ func readTags(f *os.File) Tags {
 	}
 	c := str("TCMP", "TCP", "cpil")
 	t.Compilation = c == "1" || strings.EqualFold(c, "true")
+	if m.Format() == tag.VORBIS {
+		// Vorbis comments (FLAC, Ogg): dhowden/tag fills a missing composer
+		// with the artist and doesn't read these fields, so read them directly.
+		t.Composer = clean(str("composer"))
+		t.AlbumArtist = clean(str("albumartist", "album artist", "album_artist"))
+		t.Grouping = clean(str("grouping", "contentgroup"))
+		if bpm, err := strconv.Atoi(strings.TrimSpace(str("bpm"))); err == nil && bpm > 0 && bpm < 1000 {
+			t.BPM = bpm
+		}
+		c := str("compilation")
+		t.Compilation = c == "1" || strings.EqualFold(c, "true")
+		if n, err := strconv.Atoi(strings.TrimSpace(str("tracktotal", "totaltracks"))); err == nil && n > 0 && t.TrackTotal == 0 {
+			t.TrackTotal = n
+		}
+		if n, err := strconv.Atoi(strings.TrimSpace(str("disctotal", "totaldiscs"))); err == nil && n > 0 && t.DiscTotal == 0 {
+			t.DiscTotal = n
+		}
+	}
 	if t.Comment != "" && (strings.HasPrefix(t.Comment, " 0000") || strings.HasPrefix(t.Comment, " 00000")) {
 		t.Comment = "" // iTunNORM / iTunSMPB data mistaken for a comment
 	}
@@ -346,6 +366,10 @@ func probeMP3(f *os.File, size int64, info *Info) error {
 	info.Kind = "MPEG audio file"
 	info.Ext = ".mp3"
 	info.SampleRate = uint32(fr.sampleRate)
+	info.Channels = 2
+	if fr.mono {
+		info.Channels = 1
+	}
 
 	// Xing / Info header
 	frame := buf[pos:]
@@ -525,6 +549,10 @@ func probeMP4(f *os.File, info *Info) error {
 		f.ReadAt(b, stsd.off+stsd.headerSize)
 		codec := string(b[12:16])
 		sr := binary.BigEndian.Uint32(b[40:]) >> 16
+		info.Channels = int(binary.BigEndian.Uint16(b[32:]))
+		if codec == "alac" {
+			info.Bits = int(binary.BigEndian.Uint16(b[34:]))
+		}
 		if sr > 0 && info.SampleRate == 0 {
 			info.SampleRate = sr
 		}
@@ -590,7 +618,9 @@ func probeWAV(f *os.File, info *Info) error {
 			b := make([]byte, 16)
 			f.ReadAt(b, off+8)
 			fmtTag = binary.LittleEndian.Uint16(b[0:])
+			info.Channels = int(binary.LittleEndian.Uint16(b[2:]))
 			sr = binary.LittleEndian.Uint32(b[4:])
+			info.Bits = int(binary.LittleEndian.Uint16(b[14:]))
 			byteRate = binary.LittleEndian.Uint32(b[8:])
 		case "data":
 			dataSize = sz
@@ -638,6 +668,7 @@ func probeAIFF(f *os.File, info *Info) error {
 			info.SampleCount = uint64(frames)
 			info.LengthMs = uint32(float64(frames) * 1000 / sr)
 			info.Bitrate = uint32(sr * float64(ch) * float64(bits) / 1000)
+			info.Channels, info.Bits = int(ch), int(bits)
 			found = true
 		}
 		off += 8 + sz + sz%2

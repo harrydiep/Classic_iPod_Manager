@@ -65,6 +65,10 @@ type Device struct {
 
 	artOnce sync.Once
 	art     map[uint64][]thumbRef
+
+	artw        *artDB // ArtworkDB loaded for writing
+	artDirty    bool
+	artBackedUp bool
 }
 
 // ErrNoDatabase is returned when an iPod has no iTunesDB yet.
@@ -229,6 +233,11 @@ func (d *Device) Save() error {
 			return fmt.Errorf("could not back up the database: %w", err)
 		}
 		d.backedUp = true
+	}
+	// Covers first: if the song database then fails to save, the
+	// extra artwork entries are harmless.
+	if err := d.saveArtwork(); err != nil {
+		return fmt.Errorf("could not update the iPod's album art: %w", err)
 	}
 	data := d.DB.Bytes()
 	tmp := d.dbPath() + ".podmanager-new"

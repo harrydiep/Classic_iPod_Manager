@@ -17,6 +17,7 @@ type DropCheck struct {
 	Songs    int        `json:"songs"`    // songs found (including inside folders)
 	Rejected []JobError `json:"rejected"` // files the iPod can't play
 	Reason   string     `json:"reason,omitempty"`
+	Paths    []string   `json:"paths"` // everything that was dropped
 }
 
 // CheckPaths sorts dropped files into ones the iPod can play and ones it
@@ -100,7 +101,9 @@ func unsupportedReason(p string) string {
 // HandleDrop is called with the paths of files dropped on the window. The
 // verdict is sent to the interface, which confirms and starts the copy.
 func (a *App) HandleDrop(paths []string) {
-	a.emit(Event{Type: "drop", Drop: a.CheckPaths(paths)})
+	c := a.CheckPaths(paths)
+	c.Paths = paths
+	a.emit(Event{Type: "drop", Drop: c})
 }
 
 // DragFile is one song offered to Explorer when dragging out of the list.
