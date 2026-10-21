@@ -1,0 +1,8 @@
+github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8 h1:OtSeLS5y0Uy01jaKK4mA/WVIYtpzVm63vLVAPzJXigg=
+github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8/go.mod h1:apkPC/CR3s48O2D7Y++n1XWEpgPNNCjXYga3PPbJe2E=
+github.com/golang/sys v0.39.0 h1:/kYcq8c1FnK1+Yvydnie2cPhsZg6AobFhUUbsGCtX/U=
+github.com/golang/sys v0.39.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808 h1:ftnsTqIUH57XQEF+PnXX9++nlHCzdkuB5zbWyMMruZo=
+github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808/go.mod h1:rWifBlzkgrvd7zUqlfq91sWt3473OikgnglnIILx/Jo=
+github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 h1:njuLRcjAuMKr7kI3D85AXWkw6/+v9PwtV6M6o11sWHQ=
+github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1/go.mod h1:alcuEEnZsY1WQsagKhZDsoPCRoOijYqhZvPwLG0kzVs=

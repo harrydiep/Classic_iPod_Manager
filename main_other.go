@@ -1,0 +1,205 @@
+//go:build !windows
+
+// On non-Windows systems PodManager runs as a small development server so
+// the interface and backend can be exercised in a browser:
+//
+//	go run . -roots /path/to/mounted/ipod -pick /path/to/music
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+
+	"podmanager/internal/app"
+	"podmanager/internal/media"
+)
+
+type devPlatform struct {
+	roots     []string
+	pick      string
+	exportDir string
+}
+
+func (p *devPlatform) Roots() []string { return p.roots }
+
+func (p *devPlatform) VolumeInfo(root string) (string, uint64, uint64, error) {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(root, &st); err != nil {
+		return "", 0, 0, err
+	}
+	return filepath.Base(root), st.Blocks * uint64(st.Bsize), st.Bavail * uint64(st.Bsize), nil
+}
+
+func (p *devPlatform) Eject(root string) error {
+	log.Printf("eject %s (simulated)", root)
+	return nil
+}
+
+func (p *devPlatform) PickFiles() ([]string, error) {
+	if p.pick == "" {
+		return nil, errors.New("start with -pick <folder> to simulate the file dialog")
+	}
+	var out []string
+	entries, err := os.ReadDir(p.pick)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range entries {
+		if !e.IsDir() && media.KnownAudioExt(e.Name()) {
+			out = append(out, filepath.Join(p.pick, e.Name()))
+		}
+	}
+	return out, nil
+}
+
+func (p *devPlatform) PickFolder(title string) (string, error) {
+	if strings.Contains(title, "copy") {
+		return p.exportDir, nil
+	}
+	return p.pick, nil
+}
+
+func (p *devPlatform) DragOut(files []app.DragFile) error {
+	for _, f := range files {
+		log.Printf("drag out %s as %q (%d bytes)", f.Path, f.Name, f.Size)
+	}
+	return nil
+}
+
+func (p *devPlatform) Reveal(path string) error {
+	log.Printf("reveal %s", path)
+	return nil
+}
+
+type hub struct {
+	mu   sync.Mutex
+	subs map[chan []byte]bool
+}
+
+func (h *hub) publish(b []byte) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for c := range h.subs {
+		select {
+		case c <- b:
+		default:
+		}
+	}
+}
+
+const devBridge = `<script>
+(function(){
+  var pending = {}, seq = 0;
+  window.__podReply = function(id, ok, payload){ var p = pending[id]; if(!p) return; delete pending[id]; ok ? p.resolve(payload) : p.reject(new Error(payload)); };
+  window.pm_call = function(id, method, args){
+    fetch('/rpc', {method:'POST', body: JSON.stringify({id:id, method:method, args:args})})
+      .then(function(r){ return r.json(); })
+      .then(function(r){ window.__podReply(id, r.ok, r.ok ? r.result : r.error); })
+      .catch(function(e){ window.__podReply(id, false, String(e)); });
+  };
+  window.podCall = function(method){ var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(res, rej){ var id = ++seq; pending[id] = {resolve:res, reject:rej}; window.pm_call(id, method, args); }); };
+  var es = new EventSource('/events');
+  es.onmessage = function(m){ window.__podEvent && window.__podEvent(JSON.parse(m.data)); };
+  window.__podPlatform = 'dev';
+})();
+</script>`
+
+func main() {
+	addr := flag.String("addr", "127.0.0.1:8765", "listen address")
+	roots := flag.String("roots", "", "comma separated folders that act as connected iPods")
+	pick := flag.String("pick", "", "folder whose songs are returned by the simulated file dialog")
+	export := flag.String("export", os.TempDir(), "folder used by the simulated export dialog")
+	backups := flag.String("backups", filepath.Join(os.TempDir(), "podmanager-backups"), "backup folder")
+	flag.Parse()
+
+	plat := &devPlatform{pick: *pick, exportDir: *export}
+	for _, r := range strings.Split(*roots, ",") {
+		if r = strings.TrimSpace(r); r != "" {
+			plat.roots = append(plat.roots, r)
+		}
+	}
+	h := &hub{subs: map[chan []byte]bool{}}
+	a := app.New(plat, *backups, func(e app.Event) {
+		b, _ := json.Marshal(e)
+		h.publish(b)
+	})
+	a.SetPrefsFile(filepath.Join(*backups, "settings.json"))
+	methods := a.Methods()
+	// Browsers don't reveal dropped files' paths, so in dev mode dropped
+	// names are looked up in the -pick folder.
+	methods["dropNames"] = func(names []string) {
+		var paths []string
+		for _, n := range names {
+			paths = append(paths, filepath.Join(plat.pick, filepath.Base(n)))
+		}
+		go a.HandleDrop(paths)
+	}
+	stop := make(chan struct{})
+	go a.Watch(stop)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		html := strings.Replace(indexHTML, "<head>", "<head>"+devBridge, 1)
+		fmt.Fprint(w, html)
+	})
+	http.HandleFunc("/rpc", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     int               `json:"id"`
+			Method string            `json:"method"`
+			Args   []json.RawMessage `json:"args"`
+		}
+		resp := map[string]interface{}{}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			resp["ok"], resp["error"] = false, err.Error()
+		} else if fn, ok := methods[req.Method]; !ok {
+			resp["ok"], resp["error"] = false, "unknown method "+req.Method
+		} else if res, err := app.Invoke(fn, req.Args); err != nil {
+			resp["ok"], resp["error"] = false, err.Error()
+		} else {
+			resp["ok"], resp["result"] = true, res
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		fl, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "no streaming", 500)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		c := make(chan []byte, 256)
+		h.mu.Lock()
+		h.subs[c] = true
+		h.mu.Unlock()
+		defer func() {
+			h.mu.Lock()
+			delete(h.subs, c)
+			h.mu.Unlock()
+		}()
+		fmt.Fprint(w, ": hi\n\n")
+		fl.Flush()
+		for {
+			select {
+			case b := <-c:
+				fmt.Fprintf(w, "data: %s\n\n", b)
+				fl.Flush()
+			case <-r.Context().Done():
+				return
+			}
+		}
+	})
+	log.Printf("PodManager dev server on http://%s", *addr)
+	log.Fatal(http.ListenAndServe(*addr, nil))
+}
