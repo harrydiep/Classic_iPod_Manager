@@ -169,3 +169,30 @@ func (p *winPlatform) PickFolder(title string) (string, error) {
 	}
 	return res[0], nil
 }
+
+var procGetDpiForSystem = user32.NewProc("GetDpiForSystem")
+
+// windowSize picks a starting window size (in physical pixels) that allows
+// for Windows display scaling and still fits on the screen.
+func windowSize() (w, h, minW, minH uint) {
+	dpi := uintptr(96)
+	if procGetDpiForSystem.Find() == nil {
+		if d, _, _ := procGetDpiForSystem.Call(); d >= 96 {
+			dpi = d
+		}
+	}
+	sw, _, _ := procGetSystemMetrics.Call(0) // SM_CXSCREEN
+	sh, _, _ := procGetSystemMetrics.Call(1) // SM_CYSCREEN
+	scale := func(v uint) uint { return v * uint(dpi) / 96 }
+	fit := func(v, screen uint, frac float64) uint {
+		if limit := uint(float64(screen) * frac); screen > 0 && v > limit {
+			return limit
+		}
+		return v
+	}
+	w = fit(scale(1380), uint(sw), 0.94)
+	h = fit(scale(800), uint(sh), 0.88)
+	minW = fit(scale(900), uint(sw), 0.9)
+	minH = fit(scale(580), uint(sh), 0.85)
+	return
+}

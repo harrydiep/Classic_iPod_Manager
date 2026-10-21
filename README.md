@@ -9,7 +9,9 @@ A native Windows app for managing the music on an iPod 5th generation (iPod Vide
 - **Remove songs**, singly or in bulk (Delete key or right-click). The files are deleted from the iPod and the songs disappear from every playlist.
 - **Edit metadata** with a Get Info sheet: name, artist, album artist, album, grouping, composer, comments, genre, year, track/disc numbers, BPM, rating and compilation. Select several songs to edit them together. Only the fields you tick change. By default the changes are also written into the song files' own tags (ID3v2 for MP3, iTunes atoms for M4A), with artwork and other tags preserved.
 - **Album artwork** in Get Info: the picture embedded in the song file, or the cover the iPod stores in its own artwork database (from iTunes). Click it to view it larger.
-- Inline star ratings, sortable and resizable columns, search, and a Genre / Artist / Album browser.
+- A song list with name, time, artist, album, genre, year, file type, bit rate, size, date added, rating and plays. Every column (Name included) can be resized freely; double-click a column edge to fit it to its contents, and right-click the header to show or hide columns. Columns sort by clicking their heading.
+- Inline star ratings, search, and a Genre / Artist / Album browser.
+- The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
 - Copy songs back to the computer (organised as Artist\Album\NN Title).
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
 - Keeps play counts, ratings, smart playlists and On-The-Go playlists made on the iPod.

@@ -125,7 +125,7 @@ button{cursor:default}
 .th.sorted{background:linear-gradient(#cfe0f6,#a9c4ea);color:#10233d}
 :root[data-theme="black"] .th.sorted{background:linear-gradient(#41618c,#2d4a73);color:#fff}
 .th .arrow{font-size:calc(8px*var(--fs));margin-left:4px;opacity:.8}
-.th .grip{position:absolute;right:-3px;top:0;bottom:0;width:7px;cursor:col-resize;z-index:2}
+.th .grip{position:absolute;right:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:2}
 .th.r,.td.r{text-align:right}
 .tscroll{flex:1;overflow:auto;position:relative;outline:none}
 .tspacer{position:relative;min-width:var(--tablemin,0)}
@@ -186,11 +186,12 @@ button{cursor:default}
 .btn:disabled{opacity:.5}
 
 /* footer */
-.footer{display:grid;grid-template-columns:calc(var(--sidebar,212px)*var(--fs)) 1fr calc(var(--sidebar,212px)*var(--fs));align-items:center;height:calc(30px*var(--fs));border-top:1px solid var(--alu-line);
+.footer{display:grid;grid-template-columns:minmax(calc(var(--sidebar,212px)*var(--fs)),max-content) 1fr minmax(calc(var(--sidebar,212px)*var(--fs)),max-content);align-items:center;height:calc(30px*var(--fs));border-top:1px solid var(--alu-line);
   background:linear-gradient(var(--alu-top),var(--alu-bot));box-shadow:inset 0 1px 0 var(--alu-hi);font-size:calc(11.5px*var(--fs))}
 .footer .stats{text-align:center;color:var(--text)}
-.footer .mini{display:flex;align-items:center;gap:8px;padding:0 12px}
-.minibar{flex:1;height:9px;border-radius:5px;overflow:hidden;display:flex;background:var(--free);border:1px solid #8b939c}
+.footer .mini{display:flex;align-items:center;gap:8px;padding:0 12px;white-space:nowrap}
+.captext b{font-weight:600}
+.minibar{flex:1;min-width:48px;max-width:140px;height:9px;border-radius:5px;overflow:hidden;display:flex;background:var(--free);border:1px solid #8b939c}
 .minibar i{display:block;height:100%}
 .minibar .a{background:var(--audio)}.minibar .o{background:var(--other)}
 .seg{display:flex;border:1px solid var(--btn-line);border-radius:10px;overflow:hidden}
@@ -263,6 +264,7 @@ button{cursor:default}
 /* context menu */
 .ctx{position:fixed;z-index:60;min-width:190px;padding:4px 0;background:rgba(246,247,249,.97);border:1px solid #9aa1aa;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:calc(12.5px*var(--fs));color:#1d1f22}
 .ctx div{padding:3px 18px}
+.ctx .tick{display:inline-block;width:16px;margin-left:-8px}
 .ctx div:hover{background:linear-gradient(var(--sel-a),var(--sel-b));color:#fff}
 .ctx hr{border:0;border-top:1px solid #d5d9de;margin:4px 0}
 .hidden{display:none!important}
@@ -364,24 +366,43 @@ const plural = (n, w, p) => `${n.toLocaleString()} ${n === 1 ? w : (p || w+"s")}
 const sortKey = s => (s||"").toLowerCase().replace(/^the\s+/, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 /* ------------------------------------------------------------------ state */
+// Every song-list column. text() is the plain value (used for sizing a
+// column to fit); html() overrides how it is drawn.
 const COLS = [
-  {key:"trackNumber", label:"#", w:34, r:true},
-  {key:"title", label:"Name", w:260},
-  {key:"lengthMs", label:"Time", w:52, r:true},
-  {key:"artist", label:"Artist", w:180},
-  {key:"album", label:"Album", w:190},
-  {key:"genre", label:"Genre", w:100},
-  {key:"year", label:"Year", w:48, r:true},
-  {key:"rating", label:"Rating", w:72},
-  {key:"plays", label:"Plays", w:46, r:true},
+  {key:"trackNumber", label:"#", w:34, r:true, m:true, text:t => t.trackNumber ? String(t.trackNumber) : ""},
+  {key:"title", label:"Name", w:200, text:t => t.title || ""},
+  {key:"lengthMs", label:"Time", w:48, r:true, text:t => fmtTime(t.lengthMs)},
+  {key:"artist", label:"Artist", w:140, text:t => t.artist || ""},
+  {key:"album", label:"Album", w:150, text:t => t.album || ""},
+  {key:"genre", label:"Genre", w:84, text:t => t.genre || ""},
+  {key:"year", label:"Year", w:44, r:true, text:t => t.year ? String(t.year) : ""},
+  {key:"type", label:"Type", w:56, text:t => fileType(t), tip:t => t.kind || ""},
+  {key:"bitrate", label:"Bit Rate", w:66, r:true, text:t => t.bitrate ? `${t.bitrate} kbps` : ""},
+  {key:"size", label:"Size", w:62, r:true, text:t => t.size ? fmtBytes(t.size) : ""},
+  {key:"dateAdded", label:"Date Added", w:86, r:true, text:t => fmtDate(t.dateAdded), tip:t => t.dateAdded ? new Date(t.dateAdded*1000).toLocaleString() : ""},
+  {key:"rating", label:"Rating", w:70, text:t => "", html:t => stars(t.rating, t.id)},
+  {key:"plays", label:"Plays", w:44, r:true, text:t => t.plays ? String(t.plays) : ""},
 ];
+const COL_BY_KEY = Object.fromEntries(COLS.map(c => [c.key, c]));
+const KIND_SHORT = {"MPEG audio file":"MP3", "AAC audio file":"AAC", "Apple Lossless audio file":"ALAC", "WAV audio file":"WAV",
+  "AIFF audio file":"AIFF", "AAC audio book file":"AAC book", "Protected AAC audio file":"AAC (DRM)", "Purchased AAC audio file":"AAC"};
+function fileType(t){
+  if (KIND_SHORT[t.kind]) return KIND_SHORT[t.kind];
+  const ext = (t.path || "").split(".").pop();
+  return ext && ext !== t.path ? ext.toUpperCase() : (t.kind || "");
+}
+function fmtDate(sec){
+  return sec ? new Date(sec*1000).toLocaleDateString(undefined, {day:"2-digit", month:"2-digit", year:"numeric"}) : "";
+}
+function colWidth(c){ const w = +S.widths[c.key]; return w > 0 ? w : c.w; }
+function visibleCols(){ return COLS.filter(c => c.key === "title" || !S.hidden.has(c.key)); }
 const S = {
   devices: [], lib: null, byId: new Map(), setupRoot: null,
   view: "music",            // summary | music | pl:<index> | setup | none
   sel: new Set(), anchor: null, cursor: null,
   sort: store.get("sort", {key:"artist", dir:1}),
   search: "", browser: store.get("browser", false), bsel: {genre:null, artist:null, album:null},
-  widths: store.get("widths", COLS.map(c => c.w)),
+  widths: {}, hidden: new Set(),
   theme: store.get("theme", "auto"), scale: 1,
   busy: null, flash: null, list: [], listDirty: true, renaming: false,
 };
@@ -478,7 +499,7 @@ function openOptions(){
       v.querySelectorAll("[data-theme]").forEach(x => x.classList.toggle("on", x.dataset.theme === "auto"));
       applyScale(1, true); S.scale = 1; syncScaleUI();
       store.set("writeTags", true); v.querySelector("#optWrite").checked = true;
-      S.widths = COLS.map(c => c.w); store.set("widths", S.widths);
+      S.widths = {}; store.set("colWidths", {}); S.hidden = new Set(); store.set("hiddenCols", []); renderMain();
       applyTextSize(1, true); paintSizes();
     };
     v.querySelector("[data-ok]").onclick = close;
@@ -595,6 +616,7 @@ function cmpBy(key){
     case "album": return albumOrder;
     case "genre": return (a, b) => s(a.genre, b.genre) || s(a.artist, b.artist) || albumOrder(a, b);
     case "title": return (a, b) => s(a.title, b.title) || s(a.artist, b.artist);
+    case "type": return (a, b) => s(fileType(a), fileType(b)) || s(a.artist, b.artist) || albumOrder(a, b);
     default: return (a, b) => ((a[key]||0) - (b[key]||0)) || s(a.artist, b.artist) || albumOrder(a, b);
   }
 }
@@ -632,7 +654,7 @@ function renderMain(){
   if (S.browser) renderBrowser();
   renderRows(true);
   const sc = $("#tscroll");
-  sc.addEventListener("scroll", () => { $("#thead").style.transform = sc.scrollLeft ? `translateX(${-sc.scrollLeft}px)` : ""; renderRows(); });
+  sc.addEventListener("scroll", () => { syncHeader(); renderRows(); });
   bindTable(sc);
 }
 function screenRows(title, rows){
@@ -732,16 +754,20 @@ function renderBrowser(){
 
 /* ------------------------------------------------------------------ table */
 function applyWidths(){
-  const ws = S.widths.map(w => Math.round(w * textScale));
-  const t = ws.map((w, i) => i === 1 ? `minmax(${w}px,${w*1.6}fr)` : `${w}px`).join(" ");
-  document.documentElement.style.setProperty("--cols", t);
+  const ws = visibleCols().map(c => Math.round(colWidth(c) * textScale));
+  document.documentElement.style.setProperty("--cols", ws.map(w => w + "px").join(" ") + " minmax(0,1fr)");
   document.documentElement.style.setProperty("--tablemin", ws.reduce((a, b) => a + b, 0) + "px");
+}
+// The header sits outside the scrolling list; keep it lined up sideways.
+function syncHeader(){
+  const sc = $("#tscroll"), hw = document.querySelector(".theadwrap");
+  if (sc && hw && hw.scrollLeft !== sc.scrollLeft) hw.scrollLeft = sc.scrollLeft;
 }
 function renderHead(){
   const head = $("#thead"); if (!head) return;
-  head.innerHTML = COLS.map((c, i) => {
+  head.innerHTML = visibleCols().map(c => {
     const on = S.sort.key === c.key;
-    return `<div class="th ${c.r ? "r" : ""} ${on ? "sorted" : ""}" data-key="${c.key}" role="columnheader" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}">${esc(c.label)}${on ? `<span class="arrow">${S.sort.dir > 0 ? "▲" : "▼"}</span>` : ""}<span class="grip" data-i="${i}"></span></div>`;
+    return `<div class="th ${c.r ? "r" : ""} ${on ? "sorted" : ""}" data-key="${c.key}" role="columnheader" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}">${esc(c.label)}${on ? `<span class="arrow">${S.sort.dir > 0 ? "▲" : "▼"}</span>` : ""}<span class="grip" data-col="${c.key}" title="Drag to resize · double-click to fit"></span></div>`;
   }).join("");
   head.onclick = e => {
     if (e.target.classList.contains("grip")) return;
@@ -751,12 +777,44 @@ function renderHead(){
     store.set("sort", S.sort); S.listDirty = true; renderHead(); renderRows(true);
   };
   head.onmousedown = e => {
-    if (!e.target.classList.contains("grip")) return;
+    if (!e.target.classList.contains("grip") || e.button !== 0) return;
     e.preventDefault();
-    const i = +e.target.dataset.i, x0 = e.clientX, w0 = S.widths[i];
-    const mv = ev => { S.widths[i] = Math.max(30, w0 + (ev.clientX - x0) / cssZoom / textScale); applyWidths(); };
-    const up = () => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); store.set("widths", S.widths); };
+    const c = COL_BY_KEY[e.target.dataset.col], x0 = e.clientX, w0 = colWidth(c), min = c.key === "title" ? 40 : 24;
+    document.body.style.cursor = "col-resize";
+    const mv = ev => { S.widths[c.key] = Math.max(min, Math.round(w0 + (ev.clientX - x0) / cssZoom / textScale)); applyWidths(); };
+    const up = () => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); document.body.style.cursor = ""; store.set("colWidths", S.widths); };
     addEventListener("mousemove", mv); addEventListener("mouseup", up);
+  };
+  head.ondblclick = e => { if (e.target.classList.contains("grip")) fitColumn(COL_BY_KEY[e.target.dataset.col]); };
+  head.oncontextmenu = e => { e.preventDefault(); columnMenu(e.clientX, e.clientY); };
+}
+// Size a column to its widest value (and its heading).
+function fitColumn(c){
+  if (c.key === "rating") return;
+  const probe = document.querySelector("#tspacer .td") || document.body;
+  const cv = fitColumn.cv || (fitColumn.cv = document.createElement("canvas").getContext("2d"));
+  cv.font = getComputedStyle(probe).font;
+  let max = cv.measureText(c.label).width + 18;
+  const list = S.list.length > 20000 ? S.list.slice(0, 20000) : S.list;
+  for (const t of list){ const w = cv.measureText(c.text(t)).width; if (w > max) max = w; }
+  S.widths[c.key] = Math.min(900, Math.ceil(max / textScale) + 14);
+  store.set("colWidths", S.widths); applyWidths();
+}
+function columnMenu(x, y){
+  closeCtx();
+  const m = document.createElement("div"); m.className = "ctx"; m.id = "ctx";
+  m.innerHTML = COLS.filter(c => c.key !== "title").map(c => `<div data-col="${c.key}"><span class="tick">${S.hidden.has(c.key) ? "" : "✓"}</span>${esc(c.key === "trackNumber" ? "Track Number" : c.label)}</div>`).join("")
+    + `<hr><div data-fit>Size All Columns to Fit</div><div data-reset>Reset Columns</div>`;
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect(), z = cssZoom;
+  m.style.left = Math.min(x / z, innerWidth / z - r.width / z - 4) + "px"; m.style.top = Math.min(y / z, innerHeight / z - r.height / z - 4) + "px";
+  m.onclick = e => {
+    const d = e.target.closest("div"); if (!d) return;
+    closeCtx();
+    if (d.dataset.col){ const k = d.dataset.col; S.hidden.has(k) ? S.hidden.delete(k) : S.hidden.add(k); store.set("hiddenCols", [...S.hidden]); }
+    else if ("fit" in d.dataset){ visibleCols().forEach(fitColumn); }
+    else if ("reset" in d.dataset){ S.widths = {}; S.hidden = new Set(); store.set("colWidths", {}); store.set("hiddenCols", []); }
+    applyWidths(); renderHead(); renderRows(true);
   };
 }
 function stars(r, id){
@@ -778,15 +836,19 @@ function renderRows(force){
   const key = first+":"+last+":"+list.length;
   if (!force && key === lastRange) return;
   lastRange = key;
+  const cols = visibleCols();
   let h = "";
   for (let i = first; i < last; i++){
     const t = list[i];
-    h += `<div class="row ${i % 2 ? "odd" : "even"} ${S.sel.has(t.id) ? "sel" : ""}" style="top:${i*ROW}px" data-i="${i}" data-id="${t.id}">
-      <div class="td r m">${t.trackNumber || ""}</div><div class="td">${esc(t.title)}</div><div class="td r">${fmtTime(t.lengthMs)}</div>
-      <div class="td">${esc(t.artist||"")}</div><div class="td">${esc(t.album||"")}</div><div class="td">${esc(t.genre||"")}</div>
-      <div class="td r">${t.year || ""}</div><div class="td">${stars(t.rating, t.id)}</div><div class="td r">${t.plays || ""}</div></div>`;
+    h += `<div class="row ${i % 2 ? "odd" : "even"} ${S.sel.has(t.id) ? "sel" : ""}" style="top:${i*ROW}px" data-i="${i}" data-id="${t.id}">`;
+    for (const c of cols){
+      const tip = c.tip ? c.tip(t) : "";
+      h += `<div class="td${c.r ? " r" : ""}${c.m ? " m" : ""}"${tip ? ` title="${esc(tip)}"` : ""}>${c.html ? c.html(t) : esc(c.text(t))}</div>`;
+    }
+    h += `</div>`;
   }
   sp.innerHTML = h;
+  syncHeader();
   const em = $("#empty");
   if (!list.length){
     em.classList.remove("hidden");
@@ -1215,7 +1277,11 @@ function renderStats(){
     st.textContent = `${plural(list.length, "song")}, ${fmtTotal(ms)}, ${fmtBytes(b)}` + (selN > 1 ? ` — ${selN.toLocaleString()} selected` : "");
   }
   const c = capParts(S.lib.device, S.lib.musicBytes);
-  mc.innerHTML = `<div class="minibar" title="Audio ${fmtBytes(c.audio)} · Other ${fmtBytes(c.other)} · Free ${fmtBytes(c.free)}"><i class="a" style="width:${c.pa}%"></i><i class="o" style="width:${c.po}%"></i></div><span>${fmtBytes(c.free)} free</span>`;
+  const pctFree = c.total ? Math.round(c.free / c.total * 100) : 0;
+  const tip = `${fmtBytes(c.free)} free of ${fmtBytes(c.total)} (${pctFree}% free) · Audio ${fmtBytes(c.audio)} · Other ${fmtBytes(c.other)}`;
+  mc.title = tip;
+  mc.innerHTML = `<div class="minibar" role="img" aria-label="${esc(tip)}"><i class="a" style="width:${c.pa}%"></i><i class="o" style="width:${c.po}%"></i></div>
+    <span class="captext"><b>${esc(fmtBytes(c.free))}</b> free of ${esc(fmtBytes(c.total))}</span>`;
 }
 function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); renderStats(); updateButtons(); }
 
@@ -1260,11 +1326,11 @@ addEventListener("wheel", e => {
 async function start(){
   try { Object.assign(prefs, await api("prefs") || {}); } catch(e){}
   S.sort = store.get("sort", S.sort); S.browser = store.get("browser", false);
-  S.widths = store.get("widths", S.widths); S.theme = store.get("theme", "auto");
+  const cw = store.get("colWidths", {}); S.widths = cw && typeof cw === "object" && !Array.isArray(cw) ? cw : {};
+  S.hidden = new Set(store.get("hiddenCols", [])); S.theme = store.get("theme", "auto");
   applyTextSize(+store.get("textSize", 1) || 1, false);
   const sc = +store.get("scale", 1) || 1;
   if (sc !== 1) applyScale(sc, true); else S.scale = 1;
-  if (!Array.isArray(S.widths) || S.widths.length !== COLS.length) S.widths = COLS.map(c => c.w);
   renderAll();
   try {
     S.devices = await api("devices");

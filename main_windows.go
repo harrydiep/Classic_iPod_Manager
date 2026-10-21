@@ -43,14 +43,15 @@ func main() {
 		}
 	})
 
+	winW, winH, minW, minH := windowSize()
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     os.Getenv("PODMANAGER_DEBUG") != "",
 		AutoFocus: true,
 		DataPath:  filepath.Join(dataDir, "WebView2"),
 		WindowOptions: webview2.WindowOptions{
 			Title:  "PodManager",
-			Width:  1200,
-			Height: 780,
+			Width:  winW,
+			Height: winH,
 			IconId: 1,
 			Center: true,
 		},
@@ -79,7 +80,7 @@ func main() {
 	})
 	plat.hwnd = uintptr(w.Window())
 	plat.dispatch = w.Dispatch
-	w.SetSize(940, 600, webview2.HintMin)
+	w.SetSize(int(minW), int(minH), webview2.HintMin)
 
 	methods := a.Methods()
 	// All calls run off the UI thread; results come back through __podReply.
