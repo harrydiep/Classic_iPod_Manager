@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -368,4 +369,32 @@ func (d *Device) MusicBytes() uint64 {
 		}
 	}
 	return n
+}
+
+var fwGUIDExt = regexp.MustCompile(`(?s)<key>FireWireGUID</key>\s*<string>(?:0x)?([0-9A-Fa-f]+)</string>`)
+
+// FirewireGUID returns the iPod's FireWire GUID from SysInfo or
+// SysInfoExtended, upper-case hex without "0x". The iPod also reports it as
+// its USB serial number, which is how its USB interfaces are matched to the
+// drive. Empty if unknown.
+func FirewireGUID(root string) string {
+	dev := filepath.Join(root, "iPod_Control", "Device")
+	if b, err := os.ReadFile(filepath.Join(dev, "SysInfo")); err == nil {
+		for _, line := range strings.Split(string(b), "\n") {
+			k, v, ok := strings.Cut(line, ":")
+			if ok && strings.EqualFold(strings.TrimSpace(k), "FirewireGuid") {
+				v = strings.TrimSpace(v)
+				v = strings.TrimPrefix(strings.TrimPrefix(v, "0x"), "0X")
+				if v != "" {
+					return strings.ToUpper(v)
+				}
+			}
+		}
+	}
+	if b, err := os.ReadFile(filepath.Join(dev, "SysInfoExtended")); err == nil {
+		if m := fwGUIDExt.FindSubmatch(b); m != nil {
+			return strings.ToUpper(string(m[1]))
+		}
+	}
+	return ""
 }

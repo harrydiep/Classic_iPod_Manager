@@ -6,12 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"podmanager/internal/iap"
 	"podmanager/internal/ipod"
 )
 
 type fakePlat struct {
 	root, pick, export string
 	dragged            []DragFile
+	serial             string
+	battErr            error
 }
 
 func (p *fakePlat) Roots() []string { return []string{p.root} }
@@ -30,6 +33,13 @@ func (p *fakePlat) PickFolder(t string) (string, error) {
 }
 func (p *fakePlat) Reveal(string) error        { return nil }
 func (p *fakePlat) DragOut(f []DragFile) error { p.dragged = f; return nil }
+func (p *fakePlat) Battery(serial string) (iap.Battery, error) {
+	p.serial = serial
+	if p.battErr != nil {
+		return iap.Battery{}, p.battErr
+	}
+	return iap.Battery{State: iap.StateCharging, Level: 184}, nil
+}
 
 func waitDone(t *testing.T, ev chan Event) *JobResult {
 	t.Helper()
@@ -213,5 +223,29 @@ func TestCheckPathsAndDragOut(t *testing.T) {
 	}
 	if len(plat.dragged) != 2 || plat.dragged[0].Name != "Tést Ärtist - Test Song.mp3" || plat.dragged[1].Name != "VBR Song.mp3" || plat.dragged[0].Size == 0 {
 		t.Fatalf("drag: %+v", plat.dragged)
+	}
+}
+
+func TestBattery(t *testing.T) {
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, "iPod_Control", "Device"), 0o755)
+	os.WriteFile(filepath.Join(root, "iPod_Control", "Device", "SysInfo"), []byte("ModelNumStr: xA147\nFirewireGuid: 0x000a2700137f4c2d\n"), 0o644)
+	plat := &fakePlat{root: root}
+	a := New(plat, t.TempDir(), func(Event) {})
+	v, _ := a.Battery(root)
+	if !v.Available || v.Percent != 72 || !v.Charging || !v.External || v.State != "Charging" || plat.serial != "000A2700137F4C2D" {
+		t.Fatalf("battery %+v serial %q", v, plat.serial)
+	}
+	// cached: a failure right after isn't seen until the cache expires
+	plat.battErr = ErrNoAccessoryPort
+	if v, _ := a.Battery(root); !v.Available {
+		t.Fatal("expected cached result")
+	}
+	a.batt.at = time.Time{}
+	if v, _ := a.Battery(root); v.Available || v.Percent != -1 || v.Reason == "" {
+		t.Fatalf("unavailable: %+v", v)
+	}
+	if v, _ := a.Battery(""); v.Available {
+		t.Fatal("no root")
 	}
 }

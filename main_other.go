@@ -20,6 +20,7 @@ import (
 	"syscall"
 
 	"podmanager/internal/app"
+	"podmanager/internal/iap"
 	"podmanager/internal/media"
 )
 
@@ -27,6 +28,7 @@ type devPlatform struct {
 	roots     []string
 	pick      string
 	exportDir string
+	battery   string
 }
 
 func (p *devPlatform) Roots() []string { return p.roots }
@@ -75,6 +77,27 @@ func (p *devPlatform) DragOut(files []app.DragFile) error {
 	return nil
 }
 
+func (p *devPlatform) Battery(serial string) (iap.Battery, error) {
+	// -battery "72,charging" simulates an iPod that reports its battery.
+	if p.battery == "" {
+		return iap.Battery{}, app.ErrNoAccessoryPort
+	}
+	pct, state, _ := strings.Cut(p.battery, ",")
+	var n int
+	fmt.Sscan(pct, &n)
+	b := iap.Battery{State: iap.StateBattery, Level: byte(n * 255 / 100)}
+	switch state {
+	case "charging":
+		b.State = iap.StateCharging
+	case "charged":
+		b.State = iap.StateCharged
+	case "low":
+		b.State = iap.StateBatteryLow
+	}
+	log.Printf("battery query for serial %q: %+v", serial, b)
+	return b, nil
+}
+
 func (p *devPlatform) Reveal(path string) error {
 	log.Printf("reveal %s", path)
 	return nil
@@ -120,9 +143,10 @@ func main() {
 	pick := flag.String("pick", "", "folder whose songs are returned by the simulated file dialog")
 	export := flag.String("export", os.TempDir(), "folder used by the simulated export dialog")
 	backups := flag.String("backups", filepath.Join(os.TempDir(), "podmanager-backups"), "backup folder")
+	battery := flag.String("battery", "", `simulated battery, e.g. "72,charging" (empty: not reported)`)
 	flag.Parse()
 
-	plat := &devPlatform{pick: *pick, exportDir: *export}
+	plat := &devPlatform{pick: *pick, exportDir: *export, battery: *battery}
 	for _, r := range strings.Split(*roots, ",") {
 		if r = strings.TrimSpace(r); r != "" {
 			plat.roots = append(plat.roots, r)

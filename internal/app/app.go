@@ -15,13 +15,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"podmanager/internal/iap"
 	"podmanager/internal/ipod"
 	"podmanager/internal/itdb"
 	"podmanager/internal/media"
 )
 
 // Version of the application.
-const Version = "1.3.0"
+const Version = "1.4.0"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -32,6 +33,9 @@ type Platform interface {
 	PickFolder(title string) (string, error)
 	Reveal(path string) error
 	DragOut(files []DragFile) error
+	// Battery asks the iPod whose USB serial is serial (its FireWire GUID;
+	// empty if unknown) for its power state.
+	Battery(serial string) (iap.Battery, error)
 }
 
 // Event is pushed to the UI.
@@ -139,6 +143,7 @@ type App struct {
 	lastRoots string
 	prefsPath string
 	zoomFn    func(float64)
+	batt      batteryCache
 }
 
 // New creates the app. emit is called (from any goroutine) to push events.
@@ -168,6 +173,7 @@ func (a *App) Methods() map[string]interface{} {
 		"prefs":      a.Prefs,
 		"artwork":    a.Artwork,
 		"dragOut":    a.DragOut,
+		"battery":    a.Battery,
 		"setScale":   a.SetScale,
 		"setPref":    a.SetPref,
 	}

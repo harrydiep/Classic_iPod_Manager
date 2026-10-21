@@ -14,8 +14,9 @@ A native Windows app for managing the music on an iPod 5th generation (iPod Vide
 - The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
 - Copy songs back to the computer (organised as Artist\Album\NN Title).
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
+- **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. PodManager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute.
 - Keeps play counts, ratings, smart playlists and On-The-Go playlists made on the iPod.
-- **Options** (gear button, or Ctrl+,): interface size from 75% to 200%, text size (Small to Largest, which changes only the text and list rows), Silver / Black / Auto theme (Auto matches the connected iPod's colour), and whether edits also update the song files. Settings are kept in `%LOCALAPPDATA%\PodManager\settings.json`.
+- **Options** (gear button, or Ctrl+,): interface size from 75% to 200%, text size (Small to Largest, which changes only the text and list rows), theme, and whether edits also update the song files. Themes come in two styles: the classic brushed-aluminium Silver and Black (plus Auto, which matches the connected iPod's colour), and modern flat themes in Dark Blue, Space Grey, White and Red. Settings are kept in `%LOCALAPPDATA%\PodManager\settings.json`.
 
 ## Requirements
 
@@ -50,7 +51,7 @@ GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H wi
 
 The icon, manifest and version info are in `rsrc_windows_amd64.syso`, which is generated from `winres/` with [go-winres](https://github.com/tc-hib/go-winres) (`go-winres make --in winres/winres.json --arch amd64`).
 
-On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` starts a small development server at http://127.0.0.1:8765 with the same interface.
+On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` starts a small development server at http://127.0.0.1:8765 with the same interface. Add `-battery 72,charging` to simulate a battery reading.
 
 `cmd/itdbtool` is a diagnostics helper: `itdbtool dump E:\iPod_Control\iTunes\iTunesDB` lists what's in a database.
 
@@ -60,10 +61,11 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 |---|---|
 | `internal/itdb` | Reads and writes the iTunesDB, including library sort indexes, Play Counts and On-The-Go playlists |
 | `internal/media` | Probes audio files (length, bitrate, tags) and writes ID3v2 / MP4 tags |
+| `internal/iap` | Just enough of the iPod Accessory Protocol to ask for the battery level over USB |
 | `internal/ipod` | iPod layout, model detection, safe saving with backups, file naming |
 | `internal/app` | Operations the UI calls, plus background jobs with progress |
 | `ui/index.html` | The interface (embedded in the exe) |
-| `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer |
+| `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer, the iPod's USB accessory (HID) interface for the battery |
 | `third_party/go-webview2` | [go-webview2](https://github.com/jchv/go-webview2) (MIT) with a small patch that passes the paths of files dropped on the window |
 
 ## Limitations
@@ -72,3 +74,4 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 - Video, podcasts and audiobooks aren't managed separately. .m4b files are added as audiobooks.
 - Playlists are shown, but creating or editing playlists isn't supported yet.
 - No transcoding: convert FLAC/Ogg to Apple Lossless or AAC before adding.
+- The battery reading depends on the iPod answering over its USB accessory interface. If it doesn't, the battery popover says the level is unavailable. Some firmware reports no level while charging; then only "Charging" is shown.
