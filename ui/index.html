@@ -70,7 +70,7 @@ button{cursor:default}
 .batt{width:19px;height:8px;border:1px solid #5d6670;border-radius:2px;position:relative;padding:1px}
 .batt::after{content:"";position:absolute;right:-3px;top:2px;width:2px;height:4px;background:#5d6670;border-radius:0 1px 1px 0}
 .batt i{display:block;height:100%;background:linear-gradient(#9ee08a,#4cad3a);border-radius:1px;transition:width .3s}
-.battbox{display:flex;align-items:center;gap:3px;flex:none;padding:2px 5px 2px 4px;margin:-2px -5px -2px 0;border-radius:4px;position:relative;z-index:2;outline:none;cursor:default}
+.battbox{display:flex;align-items:center;gap:3px;flex:none;padding:2px 5px 2px 4px;margin:-2px -5px -2px 0;border-radius:4px;position:relative;z-index:2;outline:none;cursor:pointer}
 .battbox:hover,.battbox:focus-visible{background:rgba(0,0,0,.09)}
 .battbox .bolt{width:6px;height:9px;display:none;color:var(--lcd-text)}
 .battbox.charging .bolt{display:block}
@@ -89,6 +89,9 @@ button{cursor:default}
 .bp-pct{font-size:calc(21px*var(--fs));font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
 .bp-state{color:var(--muted);margin-top:1px}
 .bp-state b{color:var(--text);font-weight:600}
+.battsheet .bp-row{padding:6px 0 4px}
+.diag{width:100%;height:calc(230px*var(--fs));resize:vertical;font:calc(11px*var(--fs))/1.45 Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;padding:8px 10px;border:1px solid var(--grid);border-radius:6px;background:var(--list);color:var(--text);white-space:pre;overflow:auto}
+:root[data-modern] .diag{background:var(--input-bg);color:var(--input-text);border-color:var(--ctl-line)}
 .bp-note{margin-top:9px;padding-top:8px;border-top:1px solid var(--grid);color:var(--muted);font-size:calc(11px*var(--fs));line-height:1.35}
 @media (prefers-reduced-motion:reduce){.battpop{animation:none}.batt i{transition:none}}
 .lcd-body{display:flex;flex-direction:column;justify-content:center;padding:0 10px;min-width:0}
@@ -731,7 +734,7 @@ function battInfo(){
   if (!S.lib) return {big:"No iPod", state:"Connect an iPod to see its battery.", unknown:true};
   if (!b) return {big:"Checking…", state:"Asking the iPod for its battery level.", unknown:true};
   if (!b.available) return {big:"Unavailable", state:b.reason || "The iPod didn’t report its battery.", unknown:true,
-    note:"The battery is read over the iPod’s USB accessory connection, the one car stereos use."};
+    note:"Click the battery for details you can copy."};
   const pct = b.percent >= 0 ? b.percent + "%" : b.charged ? "Full" : b.charging ? "Charging" : "—";
   let state;
   if (b.charging) state = b.percent >= 0 ? "<b>Charging</b>" : "The iPod doesn’t report its level while charging.";
@@ -740,7 +743,7 @@ function battInfo(){
   else state = esc(b.state || "On battery");
   if (b.state && /low/i.test(b.state) && !b.charging) state = "<b>Battery low</b>";
   return {big:pct, state, html:true, charging:b.charging, unknown:b.percent < 0 && !b.charged,
-    note:b.checked ? "Checked " + new Date(b.checked).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : ""};
+    note:b.checked ? "Checked " + new Date(b.checked).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) + ". Click for details." : ""};
 }
 function paintBattery(){
   const box = $("#battBox"); if (!box) return;
@@ -783,13 +786,59 @@ function showBattPop(){
   if (S.lib) refreshBattery();
 }
 function hideBattPop(){ const p = $("#battPop"); if (p) p.remove(); }
+
+// The Battery sheet asks again with every step written down, so a reading
+// that fails on someone's iPod can be diagnosed from the copied details.
+function openBatterySheet(){
+  if (sheetStack.length || !S.lib) return;
+  hideBattPop();
+  const root = S.lib.device.root;
+  sheet(`<div class="sheet-h">Battery</div><div class="sheet-b battsheet">
+      <div id="bsStatus"></div>
+      <div class="opt-sec">Details</div>
+      <textarea class="diag" id="bsReport" readonly spellcheck="false" aria-label="Battery details">Asking the iPod…</textarea>
+      <div class="opt-hint" style="margin-top:6px">PodManager reads the battery over the iPod’s USB accessory connection, the one car stereos use. If it doesn’t work, these details show which step failed.</div>
+    </div>
+    <div class="sheet-f"><div class="left"><button class="btn" data-copy disabled>Copy Details</button><button class="btn" data-again disabled>Check Again</button></div><button class="btn primary" data-ok>Done</button></div>`,
+  (v, close) => {
+    const status = v.querySelector("#bsStatus"), ta = v.querySelector("#bsReport");
+    const copyB = v.querySelector("[data-copy]"), againB = v.querySelector("[data-again]");
+    fillBattPop(status, battInfo());
+    const run = async () => {
+      copyB.disabled = againB.disabled = true;
+      ta.value = "Asking the iPod…";
+      try {
+        const r = await api("batteryReport", root);
+        if (S.lib && S.lib.device.root === root){ S.batt = r.battery; paintBattery(); }
+        ta.value = r.report || "(no details)";
+      } catch(e){ ta.value = "Couldn’t run the battery check: " + e.message; }
+      fillBattPop(status, battInfo());
+      const n = status.querySelector(".bp-note"); if (n) n.remove();
+      copyB.disabled = againB.disabled = false;
+    };
+    copyB.onclick = async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(ta.value); ok = true; } catch(e){}
+      if (!ok){ ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch(e){} }
+      copyB.textContent = ok ? "Copied" : "Select and copy the text";
+      setTimeout(() => { copyB.textContent = "Copy Details"; }, 1800);
+    };
+    againB.onclick = run;
+    v.querySelector("[data-ok]").onclick = close;
+    run();
+  });
+}
 {
   const box = $("#battBox");
   box.addEventListener("mouseenter", showBattPop);
   box.addEventListener("mouseleave", () => { if (document.activeElement !== box) hideBattPop(); });
   box.addEventListener("focus", showBattPop);
   box.addEventListener("blur", hideBattPop);
-  box.addEventListener("keydown", e => { if (e.key === "Escape"){ hideBattPop(); box.blur(); } });
+  box.addEventListener("keydown", e => {
+    if (e.key === "Escape"){ hideBattPop(); box.blur(); }
+    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openBatterySheet(); }
+  });
+  box.addEventListener("click", openBatterySheet);
   setInterval(() => { if (S.lib && !document.hidden) refreshBattery(); }, 60000);
 }
 

@@ -33,6 +33,10 @@ func (p *fakePlat) PickFolder(t string) (string, error) {
 }
 func (p *fakePlat) Reveal(string) error        { return nil }
 func (p *fakePlat) DragOut(f []DragFile) error { p.dragged = f; return nil }
+func (p *fakePlat) BatteryReport(serial string) (iap.Battery, string, error) {
+	b, err := p.Battery(serial)
+	return b, "report for " + serial, err
+}
 func (p *fakePlat) Battery(serial string) (iap.Battery, error) {
 	p.serial = serial
 	if p.battErr != nil {
@@ -247,5 +251,14 @@ func TestBattery(t *testing.T) {
 	}
 	if v, _ := a.Battery(""); v.Available {
 		t.Fatal("no root")
+	}
+	// the report bypasses the cache and refreshes it
+	plat.battErr = nil
+	r, err := a.BatteryReport(root)
+	if err != nil || !r.Battery.Available || r.Report != "report for 000A2700137F4C2D" {
+		t.Fatalf("report: %+v %v", r, err)
+	}
+	if v, _ := a.Battery(root); !v.Available {
+		t.Fatal("report should refresh the cache")
 	}
 }

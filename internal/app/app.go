@@ -22,7 +22,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.4.0"
+const Version = "1.4.1"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -36,6 +36,9 @@ type Platform interface {
 	// Battery asks the iPod whose USB serial is serial (its FireWire GUID;
 	// empty if unknown) for its power state.
 	Battery(serial string) (iap.Battery, error)
+	// BatteryReport does the same while writing down every step, for
+	// troubleshooting.
+	BatteryReport(serial string) (iap.Battery, string, error)
 }
 
 // Event is pushed to the UI.
@@ -154,28 +157,29 @@ func New(p Platform, backupDir string, emit func(Event)) *App {
 // Methods returns the operations callable from the UI, keyed by name.
 func (a *App) Methods() map[string]interface{} {
 	return map[string]interface{}{
-		"version":    func() string { return Version },
-		"devices":    a.Devices,
-		"open":       a.Open,
-		"library":    a.Library,
-		"initialize": a.Initialize,
-		"addFiles":   a.AddFiles,
-		"addFolder":  a.AddFolder,
-		"addPaths":   a.AddPaths,
-		"remove":     a.Remove,
-		"update":     a.Update,
-		"export":     a.Export,
-		"cancel":     a.Cancel,
-		"eject":      a.Eject,
-		"rename":     a.Rename,
-		"reveal":     a.Reveal,
-		"close":      a.Close,
-		"prefs":      a.Prefs,
-		"artwork":    a.Artwork,
-		"dragOut":    a.DragOut,
-		"battery":    a.Battery,
-		"setScale":   a.SetScale,
-		"setPref":    a.SetPref,
+		"version":       func() string { return Version },
+		"devices":       a.Devices,
+		"open":          a.Open,
+		"library":       a.Library,
+		"initialize":    a.Initialize,
+		"addFiles":      a.AddFiles,
+		"addFolder":     a.AddFolder,
+		"addPaths":      a.AddPaths,
+		"remove":        a.Remove,
+		"update":        a.Update,
+		"export":        a.Export,
+		"cancel":        a.Cancel,
+		"eject":         a.Eject,
+		"rename":        a.Rename,
+		"reveal":        a.Reveal,
+		"close":         a.Close,
+		"prefs":         a.Prefs,
+		"artwork":       a.Artwork,
+		"dragOut":       a.DragOut,
+		"battery":       a.Battery,
+		"batteryReport": a.BatteryReport,
+		"setScale":      a.SetScale,
+		"setPref":       a.SetPref,
 	}
 }
 

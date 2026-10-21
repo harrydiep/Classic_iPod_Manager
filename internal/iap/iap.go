@@ -175,18 +175,35 @@ type Conn struct {
 	Out     []Report     // output reports, from the HID descriptor
 	In      map[byte]int // input report sizes by ID (optional)
 	Timeout time.Duration
+	// Sync prefixes packets with the 0xFF sync byte used on serial links.
+	// USB normally goes without it; some firmware may want it anyway.
+	Sync bool
+	// Log, if set, receives a line for every packet and report.
+	Log     func(string)
 	buf     []byte
 	pending []Packet
 }
 
+func (c *Conn) logf(format string, a ...interface{}) {
+	if c.Log != nil {
+		c.Log(fmt.Sprintf(format, a...))
+	}
+}
+
 // Send writes one packet.
 func (c *Conn) Send(lingo, cmd byte, data []byte) error {
-	reps, err := Frame(Encode(lingo, cmd, data), c.Out)
+	pkt := Encode(lingo, cmd, data)
+	if c.Sync {
+		pkt = append([]byte{0xFF}, pkt...)
+	}
+	reps, err := Frame(pkt, c.Out)
 	if err != nil {
 		return err
 	}
+	c.logf("-> lingo %d cmd 0x%02X: % X", lingo, cmd, pkt)
 	for _, r := range reps {
 		if err := c.T.Write(r); err != nil {
+			c.logf("   write of report % X failed: %v", r, err)
 			return err
 		}
 	}
@@ -209,6 +226,7 @@ func (c *Conn) Next(deadline time.Time) (Packet, error) {
 		if err != nil {
 			return Packet{}, err
 		}
+		c.logf("   report in: % X", trimZeros(rep))
 		if len(rep) < 2 {
 			continue
 		}
@@ -227,9 +245,14 @@ func (c *Conn) Next(deadline time.Time) (Packet, error) {
 		b := c.buf
 		for len(b) > 0 {
 			p, used, ok, err := Decode(b)
-			if err != nil || !ok {
+			if err != nil {
+				c.logf("   undecodable data: %v", err)
 				break
 			}
+			if !ok {
+				break
+			}
+			c.logf("<- lingo %d cmd 0x%02X data % X", p.Lingo, p.Cmd, p.Data)
 			c.pending = append(c.pending, p)
 			b = b[used:]
 		}
@@ -265,24 +288,36 @@ func (e *AckError) Error() string {
 	return fmt.Sprintf("iPod refused command 0x%02X (lingo %d): status 0x%02X", e.Cmd, e.Lingo, e.Status)
 }
 
-// Identify tells the iPod we speak the general and display remote lingoes.
-// Firmware without IdentifyDeviceLingoes gets the older Identify command.
-func (c *Conn) Identify() error {
+// trimZeros drops trailing padding from a report for logging.
+func trimZeros(b []byte) []byte {
+	n := len(b)
+	for n > 2 && b[n-1] == 0 {
+		n--
+	}
+	return b[:n]
+}
+
+// IdentifyLingoes sends IdentifyDeviceLingoes (general + display remote).
+// It returns the iPod's acknowledgement status, or ErrTimeout if the iPod
+// didn't answer.
+func (c *Conn) IdentifyLingoes() (byte, error) {
 	lingoes := uint32(1<<LingoGeneral | 1<<LingoDisplayRemote)
 	data := []byte{byte(lingoes >> 24), byte(lingoes >> 16), byte(lingoes >> 8), byte(lingoes), 0, 0, 0, 0, 0, 0, 0, 0}
 	if err := c.Send(LingoGeneral, cmdIdentifyDeviceLingoes, data); err != nil {
-		return err
+		return 0, err
 	}
 	p, err := c.await(func(p Packet) bool {
 		return p.Lingo == LingoGeneral && p.Cmd == cmdGeneralAck && len(p.Data) >= 2 && p.Data[1] == cmdIdentifyDeviceLingoes
 	})
-	if err == nil && p.Data[0] == 0 {
-		return nil
+	if err != nil {
+		return 0, err
 	}
-	if err != nil && !errors.Is(err, ErrTimeout) {
-		return err
-	}
-	// Older firmware: Identify (no acknowledgement is sent).
+	return p.Data[0], nil
+}
+
+// IdentifyLegacy sends the older single-lingo Identify, which firmware
+// without IdentifyDeviceLingoes understands. No acknowledgement is sent.
+func (c *Conn) IdentifyLegacy() error {
 	return c.Send(LingoGeneral, cmdIdentify, []byte{LingoDisplayRemote})
 }
 
@@ -380,11 +415,57 @@ func (c *Conn) PowerBattery() (Battery, error) {
 	return Battery{State: p.Data[1], Level: p.Data[2]}, nil
 }
 
-// QueryBattery identifies and asks for the battery state in one go.
-func QueryBattery(t Transport, out []Report, in map[byte]int) (Battery, error) {
-	c := &Conn{T: t, Out: out, In: in}
-	if err := c.Identify(); err != nil {
-		return Battery{}, err
+// QueryBattery identifies and asks for the battery state in one go. It
+// tries USB framing first, then framing with the serial sync byte, and
+// finally the older Identify command for firmware that ignores
+// IdentifyDeviceLingoes. log may be nil.
+func QueryBattery(t Transport, out []Report, in map[byte]int, log func(string)) (Battery, error) {
+	c := &Conn{T: t, Out: out, In: in, Log: log}
+	framing := func(sync bool) string {
+		if sync {
+			return "with sync byte"
+		}
+		return "without sync byte"
 	}
-	return c.PowerBattery()
+	var lastErr error = ErrTimeout
+	for _, sync := range []bool{false, true} {
+		c.Sync = sync
+		c.logf("IdentifyDeviceLingoes, %s", framing(sync))
+		st, err := c.IdentifyLingoes()
+		if errors.Is(err, ErrTimeout) {
+			c.logf("   no answer")
+			continue
+		}
+		if err != nil {
+			return Battery{}, err
+		}
+		if st != 0 {
+			c.logf("   refused with status 0x%02X; trying the older Identify", st)
+			if err := c.IdentifyLegacy(); err != nil {
+				return Battery{}, err
+			}
+		}
+		b, err := c.PowerBattery()
+		if err == nil {
+			c.logf("battery: state 0x%02X, level %d/255", b.State, b.Level)
+			return b, nil
+		}
+		c.logf("   battery request failed: %v", err)
+		return Battery{}, err // the iPod is talking; a second framing won't help
+	}
+	for _, sync := range []bool{false, true} {
+		c.Sync = sync
+		c.logf("older Identify, %s", framing(sync))
+		if err := c.IdentifyLegacy(); err != nil {
+			return Battery{}, err
+		}
+		b, err := c.PowerBattery()
+		if err == nil {
+			c.logf("battery: state 0x%02X, level %d/255", b.State, b.Level)
+			return b, nil
+		}
+		c.logf("   battery request failed: %v", err)
+		lastErr = err
+	}
+	return Battery{}, lastErr
 }

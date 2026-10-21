@@ -2,6 +2,7 @@ package iap
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 )
@@ -71,6 +72,7 @@ func TestFrame(t *testing.T) {
 type fakePod struct {
 	t        *testing.T
 	mode     string // "modern", "statinfo", "ancient", "silent"
+	needSync bool   // ignore packets without the 0xFF sync byte
 	battery  Battery
 	inSize   int
 	rx       []byte
@@ -90,6 +92,9 @@ func (f *fakePod) Write(rep []byte) error {
 	p, _, ok, err := Decode(f.rx)
 	if !ok || err != nil {
 		f.t.Fatalf("pod got a bad packet % X: %v", f.rx, err)
+	}
+	if f.needSync && f.rx[0] != 0xFF {
+		return nil
 	}
 	f.sent = append(f.sent, p)
 	f.handle(p)
@@ -155,7 +160,7 @@ func TestQueryBattery(t *testing.T) {
 	out := []Report{{ID: 1, Size: 5}, {ID: 2, Size: 9}}
 	for _, mode := range []string{"modern", "statinfo", "ancient"} {
 		pod := &fakePod{t: t, mode: mode, battery: Battery{State: StateCharging, Level: 184}, inSize: 6}
-		b, err := QueryBattery(pod, out, map[byte]int{5: 6})
+		b, err := QueryBattery(pod, out, map[byte]int{5: 6}, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", mode, err)
 		}
@@ -164,8 +169,23 @@ func TestQueryBattery(t *testing.T) {
 		}
 	}
 	pod := &fakePod{t: t, mode: "silent", inSize: 6}
-	if _, err := QueryBattery(pod, out, nil); err == nil {
+	if _, err := QueryBattery(pod, out, nil, nil); err == nil {
 		t.Fatal("silent iPod should time out")
+	}
+	// firmware that only listens to framing with the sync byte
+	var log []string
+	pod = &fakePod{t: t, mode: "modern", needSync: true, battery: Battery{State: StateBattery, Level: 255}, inSize: 6}
+	b, err := QueryBattery(pod, out, nil, func(s string) { log = append(log, s) })
+	if err != nil || b.Percent() != 100 {
+		t.Fatalf("sync framing: %+v %v\n%s", b, err, strings.Join(log, "\n"))
+	}
+	if len(log) < 6 || !strings.Contains(strings.Join(log, "\n"), "with sync byte") {
+		t.Fatalf("log:\n%s", strings.Join(log, "\n"))
+	}
+	// an ancient iPod that also wants the sync byte
+	pod = &fakePod{t: t, mode: "ancient", needSync: true, battery: Battery{State: StateCharging, Level: 10}, inSize: 6}
+	if b, err := QueryBattery(pod, out, nil, nil); err != nil || b.Level != 10 {
+		t.Fatalf("ancient sync: %+v %v", b, err)
 	}
 }
 

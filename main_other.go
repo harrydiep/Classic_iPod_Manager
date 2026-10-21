@@ -98,6 +98,17 @@ func (p *devPlatform) Battery(serial string) (iap.Battery, error) {
 	return b, nil
 }
 
+func (p *devPlatform) BatteryReport(serial string) (iap.Battery, string, error) {
+	b, err := p.Battery(serial)
+	r := fmt.Sprintf("PodManager %s battery report (development server)\niPod FireWire GUID: %s\n\nSimulated with -battery %q.\n", app.Version, serial, p.battery)
+	if err != nil {
+		r += "\nResult: failed: " + err.Error() + "\n"
+	} else {
+		r += fmt.Sprintf("\nResult: %s, level %d/255 (%d%%)\n", b.Describe(), b.Level, b.Percent())
+	}
+	return b, r, err
+}
+
 func (p *devPlatform) Reveal(path string) error {
 	log.Printf("reveal %s", path)
 	return nil

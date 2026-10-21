@@ -14,7 +14,7 @@ A native Windows app for managing the music on an iPod 5th generation (iPod Vide
 - The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
 - Copy songs back to the computer (organised as Artist\Album\NN Title).
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
-- **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. PodManager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute.
+- **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. PodManager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute. Click it for a Battery window with a step-by-step report you can copy, which shows where the request fails if your iPod doesn't answer.
 - Keeps play counts, ratings, smart playlists and On-The-Go playlists made on the iPod.
 - **Options** (gear button, or Ctrl+,): interface size from 75% to 200%, text size (Small to Largest, which changes only the text and list rows), theme, and whether edits also update the song files. Themes come in two styles: the classic brushed-aluminium Silver and Black (plus Auto, which matches the connected iPod's colour), and modern flat themes in Dark Blue, Space Grey, White and Red. Settings are kept in `%LOCALAPPDATA%\PodManager\settings.json`.
 

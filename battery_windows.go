@@ -3,7 +3,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -86,66 +85,112 @@ var (
 	_ [72]byte = [unsafe.Sizeof(hidpValueCaps{})]byte{}
 )
 
-// isIPodPID reports whether pid belongs to an iPod in disk mode (classic,
-// mini and nano families, 0x1201-0x126F).
-func isIPodPID(pid uint16) bool { return pid > 0x1200 && pid < 0x1270 }
-
-type hidCandidate struct {
-	path   string
-	serial string
-	pid    uint16
+// hidInfo describes one HID interface (collection) from Apple.
+type hidInfo struct {
+	path             string
+	pid              uint16
+	serial           string
+	usagePage, usage uint16
+	inLen, outLen    int
+	out              []iap.Report
+	in               map[byte]int
+	err              error // why its details couldn't be read
 }
 
-// findIPodHID lists the HID interfaces of connected iPods.
-func findIPodHID() ([]hidCandidate, error) {
+// listAppleHID lists the HID interfaces with Apple's vendor ID.
+func listAppleHID() ([]hidInfo, error) {
 	var guid windows.GUID
 	procHidD_GetHidGuid.Call(uintptr(unsafe.Pointer(&guid)))
 	paths, err := windows.CM_Get_Device_Interface_List("", &guid, windows.CM_GET_DEVICE_INTERFACE_LIST_PRESENT)
 	if err != nil {
 		return nil, err
 	}
-	var out []hidCandidate
+	var out []hidInfo
 	for _, p := range paths {
 		// Only VID_05AC devices are opened at all.
 		if !strings.Contains(strings.ToUpper(p), "VID_05AC") {
 			continue
 		}
-		pp, err := windows.UTF16PtrFromString(p)
-		if err != nil {
-			continue
-		}
-		// Access 0 is enough to read attributes and strings.
-		h, err := windows.CreateFile(pp, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
-		if err != nil {
-			continue
-		}
-		attr := hiddAttributes{Size: uint32(unsafe.Sizeof(hiddAttributes{}))}
-		r, _, _ := procHidD_GetAttributes.Call(uintptr(h), uintptr(unsafe.Pointer(&attr)))
-		if r&0xff != 0 && attr.VendorID == appleVID && isIPodPID(attr.ProductID) {
-			var buf [128]uint16
-			serial := ""
-			if r, _, _ := procHidD_GetSerialNumberString.Call(uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)*2)); r&0xff != 0 {
-				serial = windows.UTF16ToString(buf[:])
-			}
-			out = append(out, hidCandidate{path: p, serial: serial, pid: attr.ProductID})
-		}
-		windows.CloseHandle(h)
+		out = append(out, describeHID(p))
 	}
 	return out, nil
 }
 
-// pickIPodHID chooses the interface whose USB serial matches the iPod's
-// FireWire GUID; with no match it only guesses when a single iPod is
-// connected.
-func pickIPodHID(cands []hidCandidate, serial string) []hidCandidate {
-	norm := func(s string) string {
-		s = strings.ToUpper(strings.TrimSpace(s))
-		return strings.TrimLeft(strings.TrimPrefix(s, "0X"), "0")
+// describeHID reads an interface's IDs, serial and report layout. Access 0
+// is enough for all of these, so nothing is opened for reading or writing.
+func describeHID(path string) hidInfo {
+	info := hidInfo{path: path}
+	pp, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		info.err = err
+		return info
 	}
-	var match []hidCandidate
+	h, err := windows.CreateFile(pp, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		info.err = err
+		return info
+	}
+	defer windows.CloseHandle(h)
+	attr := hiddAttributes{Size: uint32(unsafe.Sizeof(hiddAttributes{}))}
+	if r, _, e := procHidD_GetAttributes.Call(uintptr(h), uintptr(unsafe.Pointer(&attr))); r&0xff == 0 {
+		info.err = fmt.Errorf("HidD_GetAttributes: %v", e)
+		return info
+	}
+	info.pid = attr.ProductID
+	var buf [128]uint16
+	if r, _, _ := procHidD_GetSerialNumberString.Call(uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)*2)); r&0xff != 0 {
+		info.serial = windows.UTF16ToString(buf[:])
+	}
+	var pre uintptr
+	if r, _, e := procHidD_GetPreparsedData.Call(uintptr(h), uintptr(unsafe.Pointer(&pre))); r&0xff == 0 {
+		info.err = fmt.Errorf("HidD_GetPreparsedData: %v", e)
+		return info
+	}
+	defer procHidD_FreePreparsedData.Call(pre)
+	var caps hidpCaps
+	if st, _, _ := procHidP_GetCaps.Call(pre, uintptr(unsafe.Pointer(&caps))); uint32(st) != hidpStatusSuccess {
+		info.err = fmt.Errorf("HidP_GetCaps failed (0x%X)", uint32(st))
+		return info
+	}
+	info.usagePage, info.usage = caps.UsagePage, caps.Usage
+	info.inLen, info.outLen = int(caps.InputReportByteLength), int(caps.OutputReportByteLength)
+	info.out = reportSizes(pre, hidpOutput, int(caps.NumberOutputValueCaps))
+	if len(info.out) == 0 && info.outLen > 1 {
+		info.out = []iap.Report{{ID: 0, Size: info.outLen - 1}}
+	}
+	info.in = map[byte]int{}
+	for _, r := range reportSizes(pre, hidpInput, int(caps.NumberInputValueCaps)) {
+		info.in[r.ID] = r.Size
+	}
+	return info
+}
+
+// usable reports whether the interface can carry iAP packets.
+func (h hidInfo) usable() bool { return h.err == nil && h.inLen >= 3 && h.outLen >= 3 }
+
+// isIPodPID reports whether pid belongs to an iPod in disk mode (classic,
+// mini and nano families, 0x1201-0x126F).
+func isIPodPID(pid uint16) bool { return pid > 0x1200 && pid < 0x1270 }
+
+func normSerial(s string) string {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	return strings.TrimLeft(strings.TrimPrefix(s, "0X"), "0")
+}
+
+// pickIPodHID chooses the iPod interfaces whose USB serial matches the
+// iPod's FireWire GUID; with no match it only guesses when a single iPod is
+// connected.
+func pickIPodHID(all []hidInfo, serial string) []hidInfo {
+	var cands []hidInfo
+	for _, h := range all {
+		if isIPodPID(h.pid) && h.usable() {
+			cands = append(cands, h)
+		}
+	}
+	var match []hidInfo
 	if serial != "" {
 		for _, c := range cands {
-			if norm(c.serial) == norm(serial) {
+			if normSerial(c.serial) == normSerial(serial) {
 				match = append(match, c)
 			}
 		}
@@ -155,7 +200,7 @@ func pickIPodHID(cands []hidCandidate, serial string) []hidCandidate {
 	}
 	serials := map[string]bool{}
 	for _, c := range cands {
-		serials[norm(c.serial)] = true
+		serials[normSerial(c.serial)] = true
 	}
 	if len(serials) == 1 {
 		return cands
@@ -166,37 +211,30 @@ func pickIPodHID(cands []hidCandidate, serial string) []hidCandidate {
 // hidPort is an opened HID interface used as an iap.Transport.
 type hidPort struct {
 	h        windows.Handle
-	inLen    int
-	outLen   int
-	out      []iap.Report
-	in       map[byte]int
+	info     hidInfo
 	ev       windows.Handle
-	writeWay int // 0 untried, 1 exact WriteFile, 2 padded WriteFile, 3 HidD_SetOutputReport
+	ov       *windows.Overlapped // on the heap: Windows holds on to it while I/O is pending
+	writeWay int                 // 0 untried, 1 exact WriteFile, 2 padded WriteFile, 3 HidD_SetOutputReport
 	rbuf     []byte
+	log      func(string)
 }
 
-func openHIDPort(path string) (*hidPort, error) {
-	pp, err := windows.UTF16PtrFromString(path)
+func openHIDPort(info hidInfo, log func(string)) (*hidPort, error) {
+	pp, err := windows.UTF16PtrFromString(info.path)
 	if err != nil {
 		return nil, err
 	}
 	h, err := windows.CreateFile(pp, windows.GENERIC_READ|windows.GENERIC_WRITE,
 		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_OVERLAPPED, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening the HID interface for reading and writing: %w", err)
 	}
-	p := &hidPort{h: h}
-	if err := p.readCaps(); err != nil {
-		windows.CloseHandle(h)
-		return nil, err
-	}
-	p.ev, err = windows.CreateEvent(nil, 1, 0, nil)
+	ev, err := windows.CreateEvent(nil, 1, 0, nil)
 	if err != nil {
 		windows.CloseHandle(h)
 		return nil, err
 	}
-	p.rbuf = make([]byte, p.inLen)
-	return p, nil
+	return &hidPort{h: h, info: info, ev: ev, ov: new(windows.Overlapped), rbuf: make([]byte, info.inLen), log: log}, nil
 }
 
 func (p *hidPort) Close() {
@@ -204,29 +242,10 @@ func (p *hidPort) Close() {
 	windows.CloseHandle(p.h)
 }
 
-func (p *hidPort) readCaps() error {
-	var pre uintptr
-	if r, _, _ := procHidD_GetPreparsedData.Call(uintptr(p.h), uintptr(unsafe.Pointer(&pre))); r&0xff == 0 {
-		return errors.New("couldn't read the HID descriptor")
+func (p *hidPort) logf(format string, a ...interface{}) {
+	if p.log != nil {
+		p.log(fmt.Sprintf(format, a...))
 	}
-	defer procHidD_FreePreparsedData.Call(pre)
-	var caps hidpCaps
-	if st, _, _ := procHidP_GetCaps.Call(pre, uintptr(unsafe.Pointer(&caps))); uint32(st) != hidpStatusSuccess {
-		return fmt.Errorf("HidP_GetCaps failed (0x%X)", uint32(st))
-	}
-	p.inLen, p.outLen = int(caps.InputReportByteLength), int(caps.OutputReportByteLength)
-	if p.inLen < 3 || p.outLen < 3 {
-		return errors.New("this HID interface doesn't carry accessory data")
-	}
-	p.out = reportSizes(pre, hidpOutput, int(caps.NumberOutputValueCaps))
-	if len(p.out) == 0 {
-		p.out = []iap.Report{{ID: 0, Size: p.outLen - 1}}
-	}
-	p.in = map[byte]int{}
-	for _, r := range reportSizes(pre, hidpInput, int(caps.NumberInputValueCaps)) {
-		p.in[r.ID] = r.Size
-	}
-	return nil
 }
 
 // reportSizes adds up the value fields of each report ID.
@@ -256,13 +275,13 @@ func reportSizes(pre uintptr, kind uint32, n int) []iap.Report {
 // io runs one overlapped ReadFile/WriteFile with a timeout.
 func (p *hidPort) io(write bool, buf []byte, timeout time.Duration) (int, error) {
 	windows.ResetEvent(p.ev)
-	ov := windows.Overlapped{HEvent: p.ev}
+	*p.ov = windows.Overlapped{HEvent: p.ev}
 	var n uint32
 	var err error
 	if write {
-		err = windows.WriteFile(p.h, buf, &n, &ov)
+		err = windows.WriteFile(p.h, buf, &n, p.ov)
 	} else {
-		err = windows.ReadFile(p.h, buf, &n, &ov)
+		err = windows.ReadFile(p.h, buf, &n, p.ov)
 	}
 	if err == nil {
 		return int(n), nil
@@ -276,13 +295,13 @@ func (p *hidPort) io(write bool, buf []byte, timeout time.Duration) (int, error)
 	}
 	ev, _ := windows.WaitForSingleObject(p.ev, ms)
 	if ev != windows.WAIT_OBJECT_0 {
-		windows.CancelIoEx(p.h, &ov)
-		if err := windows.GetOverlappedResult(p.h, &ov, &n, true); err == nil && n > 0 {
+		windows.CancelIoEx(p.h, p.ov)
+		if err := windows.GetOverlappedResult(p.h, p.ov, &n, true); err == nil && n > 0 {
 			return int(n), nil // finished just as it was cancelled
 		}
 		return 0, iap.ErrTimeout
 	}
-	if err := windows.GetOverlappedResult(p.h, &ov, &n, false); err != nil {
+	if err := windows.GetOverlappedResult(p.h, p.ov, &n, false); err != nil {
 		return 0, err
 	}
 	return int(n), nil
@@ -292,8 +311,9 @@ func (p *hidPort) io(write bool, buf []byte, timeout time.Duration) (int, error)
 // report's own size or the longest output report, so both are tried, then
 // HidD_SetOutputReport.
 func (p *hidPort) Write(rep []byte) error {
-	padded := make([]byte, p.outLen)
+	padded := make([]byte, p.info.outLen)
 	copy(padded, rep)
+	names := [...]string{"", "WriteFile (report size)", "WriteFile (padded)", "HidD_SetOutputReport"}
 	try := func(way int) error {
 		switch way {
 		case 1:
@@ -320,8 +340,10 @@ func (p *hidPort) Write(rep []byte) error {
 		}
 		if err = try(way); err == nil {
 			p.writeWay = way
+			p.logf("   writing with %s", names[way])
 			return nil
 		}
+		p.logf("   %s failed: %v", names[way], err)
 	}
 	return err
 }
@@ -335,29 +357,129 @@ func (p *hidPort) Read(timeout time.Duration) ([]byte, error) {
 	return append([]byte(nil), p.rbuf[:n]...), nil
 }
 
-// Battery finds the iPod's accessory interface and asks for its battery.
-func (p *winPlatform) Battery(serial string) (iap.Battery, error) {
-	cands, err := findIPodHID()
+// battery finds the iPod's accessory interface and asks for its battery,
+// logging each step if log is set.
+func battery(serial string, log func(string)) (iap.Battery, error) {
+	logf := func(format string, a ...interface{}) {
+		if log != nil {
+			log(fmt.Sprintf(format, a...))
+		}
+	}
+	all, err := listAppleHID()
 	if err != nil {
+		logf("listing HID interfaces failed: %v", err)
 		return iap.Battery{}, err
 	}
-	cands = pickIPodHID(cands, serial)
+	cands := pickIPodHID(all, serial)
 	if len(cands) == 0 {
+		logf("no usable iPod HID interface")
 		return iap.Battery{}, app.ErrNoAccessoryPort
 	}
 	var lastErr error = app.ErrNoAccessoryPort
 	for _, c := range cands { // an iPod can have more than one HID collection
-		port, err := openHIDPort(c.path)
+		logf("\nTalking to %s", c.path)
+		port, err := openHIDPort(c, log)
 		if err != nil {
+			logf("   %v", err)
 			lastErr = err
 			continue
 		}
-		b, err := iap.QueryBattery(port, port.out, port.in)
+		b, err := iap.QueryBattery(port, c.out, c.in, log)
 		port.Close()
 		if err == nil {
 			return b, nil
 		}
+		logf("   result: %v", err)
 		lastErr = err
 	}
 	return iap.Battery{}, lastErr
+}
+
+// Battery asks the iPod for its battery state.
+func (p *winPlatform) Battery(serial string) (iap.Battery, error) {
+	return battery(serial, nil)
+}
+
+// BatteryReport runs the battery request with every step written down,
+// along with what Windows reports about Apple's USB devices.
+func (p *winPlatform) BatteryReport(serial string) (iap.Battery, string, error) {
+	var sb strings.Builder
+	w := func(line string) { sb.WriteString(line + "\n") }
+	wf := func(format string, a ...interface{}) { w(fmt.Sprintf(format, a...)) }
+	wf("PodManager %s battery report, %s", app.Version, time.Now().Format("2006-01-02 15:04:05"))
+	if serial == "" {
+		w("iPod FireWire GUID: not found in SysInfo")
+	} else {
+		wf("iPod FireWire GUID: %s", serial)
+	}
+
+	w("\nApple USB devices:")
+	usb := listAppleUSB()
+	if len(usb) == 0 {
+		w("  (none)")
+	}
+	for _, l := range usb {
+		w("  " + l)
+	}
+
+	w("\nApple HID interfaces:")
+	all, err := listAppleHID()
+	if err != nil {
+		wf("  listing failed: %v", err)
+	}
+	if len(all) == 0 && err == nil {
+		w("  (none)")
+	}
+	for _, h := range all {
+		wf("  %s", h.path)
+		if h.err != nil {
+			wf("    couldn't read details: %v", h.err)
+			continue
+		}
+		wf("    PID %04X, serial %q, usage page %04X usage %04X", h.pid, h.serial, h.usagePage, h.usage)
+		wf("    input %d bytes %v, output %d bytes %v", h.inLen, h.in, h.outLen, h.out)
+	}
+
+	w("\nBattery request:")
+	b, err := battery(serial, w)
+	if err != nil {
+		wf("\nResult: failed: %v", err)
+	} else {
+		wf("\nResult: %s, level %d/255 (%d%%)", b.Describe(), b.Level, b.Percent())
+	}
+	return b, sb.String(), err
+}
+
+// listAppleUSB describes the present devices under the USB enumerator with
+// Apple's vendor ID: instance ID, description and driver.
+func listAppleUSB() []string {
+	set, err := windows.SetupDiGetClassDevsEx(nil, "USB", 0, windows.DIGCF_ALLCLASSES|windows.DIGCF_PRESENT, 0, "")
+	if err != nil {
+		return []string{"listing failed: " + err.Error()}
+	}
+	defer set.Close()
+	var out []string
+	for i := 0; ; i++ {
+		d, err := set.EnumDeviceInfo(i)
+		if err != nil {
+			break
+		}
+		id, err := set.DeviceInstanceID(d)
+		if err != nil || !strings.Contains(strings.ToUpper(id), "VID_05AC") {
+			continue
+		}
+		prop := func(p windows.SPDRP) string {
+			v, err := set.DeviceRegistryProperty(d, p)
+			if err != nil {
+				return ""
+			}
+			if s, ok := v.(string); ok {
+				return s
+			}
+			return fmt.Sprint(v)
+		}
+		out = append(out, fmt.Sprintf("%s | %s | driver: %s", id, prop(windows.SPDRP_DEVICEDESC), prop(windows.SPDRP_SERVICE)))
+	}
+	sort.Strings(out)
+	return out
 }

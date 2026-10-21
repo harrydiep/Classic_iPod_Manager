@@ -47,8 +47,35 @@ func (a *App) Battery(root string) (*BatteryView, error) {
 		v := c.view
 		return &v, nil
 	}
-	v := BatteryView{Percent: -1, Checked: time.Now().UnixMilli()}
 	b, err := a.plat.Battery(ipod.FirewireGUID(root))
+	v := batteryView(b, err)
+	c.root, c.at, c.view = root, time.Now(), v
+	return &v, nil
+}
+
+// BatteryReportView is a battery reading with a step-by-step report.
+type BatteryReportView struct {
+	Battery BatteryView `json:"battery"`
+	Report  string      `json:"report"`
+}
+
+// BatteryReport asks the iPod for its battery again, writing down every
+// step so a failure can be diagnosed.
+func (a *App) BatteryReport(root string) (*BatteryReportView, error) {
+	if root == "" {
+		return nil, errors.New("no iPod is open")
+	}
+	c := &a.batt
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	b, report, err := a.plat.BatteryReport(ipod.FirewireGUID(root))
+	v := batteryView(b, err)
+	c.root, c.at, c.view = root, time.Now(), v
+	return &BatteryReportView{Battery: v, Report: report}, nil
+}
+
+func batteryView(b iap.Battery, err error) BatteryView {
+	v := BatteryView{Percent: -1, Checked: time.Now().UnixMilli()}
 	switch {
 	case err == nil:
 		v.Available = true
@@ -64,6 +91,5 @@ func (a *App) Battery(root string) (*BatteryView, error) {
 	default:
 		v.Reason = "Couldn't read the battery: " + err.Error()
 	}
-	c.root, c.at, c.view = root, time.Now(), v
-	return &v, nil
+	return v
 }
