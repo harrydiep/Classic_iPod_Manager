@@ -189,7 +189,7 @@ func main() {
 	backups := flag.String("backups", filepath.Join(os.TempDir(), "podmanager-backups"), "backup folder")
 	battery := flag.String("battery", "", `simulated battery, e.g. "72,charging" (empty: not reported)`)
 	image := flag.String("image", "", "picture returned by the simulated picture dialog")
-	mainDir := flag.String("main", filepath.Join(os.TempDir(), "ClassiciClassic iPod Manager-main"), "Classic iPod Manager's main folder (encoders, converted songs)")
+	mainDir := flag.String("main", filepath.Join(os.TempDir(), "ClassiciPodManager-main"), "Classic iPod Manager's main folder (encoders, converted songs)")
 	flag.Parse()
 
 	plat := &devPlatform{pick: *pick, exportDir: *export, battery: *battery, image: *image}
@@ -205,6 +205,9 @@ func main() {
 	})
 	a.SetPrefsFile(filepath.Join(*backups, "settings.json"))
 	a.SetMainFolder(*mainDir)
+	a.ClearPlaybackCache()
+	a.SetMediaBase("/")
+	http.Handle("/media/", a.MediaHandler())
 	methods := a.Methods()
 	// Browsers don't reveal dropped files' paths, so in dev mode dropped
 	// names are looked up in the -pick folder.

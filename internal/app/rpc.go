@@ -15,13 +15,14 @@ func Invoke(fn interface{}, args []json.RawMessage) (json.RawMessage, error) {
 		return nil, errors.New("unknown method")
 	}
 	t := v.Type()
-	if len(args) != t.NumIn() {
+	// Missing trailing arguments get their zero value.
+	if len(args) > t.NumIn() {
 		return nil, fmt.Errorf("expected %d arguments, got %d", t.NumIn(), len(args))
 	}
-	in := make([]reflect.Value, len(args))
-	for i := range args {
+	in := make([]reflect.Value, t.NumIn())
+	for i := range in {
 		p := reflect.New(t.In(i))
-		if len(args[i]) > 0 && string(args[i]) != "null" {
+		if i < len(args) && len(args[i]) > 0 && string(args[i]) != "null" {
 			if err := json.Unmarshal(args[i], p.Interface()); err != nil {
 				return nil, fmt.Errorf("argument %d: %v", i+1, err)
 			}

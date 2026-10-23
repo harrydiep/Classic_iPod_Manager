@@ -66,18 +66,18 @@ func TestVideos(t *testing.T) {
 	}
 
 	// "Add Folder" in the Music view only takes the song
-	a.AddMedia([]string{vids}, "music")
+	a.AddMedia([]string{vids}, "music", 0)
 	if r := waitDone(t, ev); r.OK != 1 || r.Videos != 0 {
 		t.Fatalf("music folder: %+v", r)
 	}
 	// and in the Videos view only the videos, converting two of them
-	a.AddMedia([]string{vids}, "video")
+	a.AddMedia([]string{vids}, "video", 0)
 	r := waitDone(t, ev)
 	if r.Error != "" || r.OK != 3 || r.Videos != 3 || r.Converted != 2 || len(r.Errors) != 0 {
 		t.Fatalf("video folder: %+v", r)
 	}
 	// again: all duplicates
-	a.AddMedia([]string{vids}, "video")
+	a.AddMedia([]string{vids}, "video", 0)
 	if r := waitDone(t, ev); r.OK != 0 || r.Skipped != 3 {
 		t.Fatalf("duplicates: %+v", r)
 	}
@@ -148,6 +148,41 @@ func TestVideos(t *testing.T) {
 		}
 	}
 
+	// adding into a section files the video there; the file's own kind
+	// (iTunes' stik) is used when added to Videos in general
+	mv := filepath.Join(vids, "promo.m4v")
+	testVideo(t, mv, "320x240", append(append([]string{}, baseline...), "-metadata", "title=Promo")...)
+	a.AddMedia([]string{mv}, "video", int(itdb.MediaMusicVideo))
+	if r := waitDone(t, ev); r.OK != 1 {
+		t.Fatalf("add to music videos: %+v", r)
+	}
+	ep := filepath.Join(vids, "episode.m4v")
+	testVideo(t, ep, "320x240", append(append([]string{}, baseline...), "-metadata", "title=Pilot", "-metadata", "album=Space Show", "-movflags", "+faststart")...)
+	if b, err := exec.Command("ffmpeg", "-nostdin", "-v", "error", "-i", ep, "-c", "copy", "-metadata", "media_type=10", "-y", ep+".tmp.m4v").CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, b)
+	}
+	os.Rename(ep+".tmp.m4v", ep)
+	if media.MP4MediaKind(ep) != 10 {
+		t.Fatalf("stik: %d", media.MP4MediaKind(ep))
+	}
+	a.AddMedia([]string{ep}, "video", 0)
+	if r := waitDone(t, ev); r.OK != 1 {
+		t.Fatalf("add episode: %+v", r)
+	}
+	d, _ = ipod.Open(root, "")
+	for _, tr := range d.DB.Tracks {
+		switch tr.Title() {
+		case "Promo":
+			if tr.MediaType() != itdb.MediaMusicVideo {
+				t.Fatalf("promo filed as %d", tr.MediaType())
+			}
+		case "Pilot":
+			if tr.MediaType() != itdb.MediaTVShow || tr.Str(itdb.MhodTVShow) != "Space Show" {
+				t.Fatalf("pilot filed as %d / %q", tr.MediaType(), tr.Str(itdb.MhodTVShow))
+			}
+		}
+	}
+
 	// remove a video: file and thumbnail go
 	p := filepath.Join(root, filepath.FromSlash(concert.Path))
 	if err := a.Remove([]uint32{concert.ID}); err != nil {
@@ -158,7 +193,7 @@ func TestVideos(t *testing.T) {
 		t.Fatal("video file still on the iPod")
 	}
 	lib, _ = a.Library()
-	if len(lib.Tracks) != 3 {
+	if len(lib.Tracks) != 5 {
 		t.Fatalf("after remove: %d", len(lib.Tracks))
 	}
 }

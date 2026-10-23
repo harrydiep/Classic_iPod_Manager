@@ -5,6 +5,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -67,6 +69,13 @@ func main() {
 	defer w.Destroy()
 	a.SetPrefsFile(filepath.Join(dataDir, "settings.json"))
 	a.SetMainFolder(mainFolder(dataDir))
+	a.ClearPlaybackCache()
+	// Songs are played by the page's audio element from a loopback-only
+	// server on a random port (requests need a random token).
+	if ln, err := net.Listen("tcp", "127.0.0.1:0"); err == nil {
+		a.SetMediaBase(fmt.Sprintf("http://127.0.0.1:%d/", ln.Addr().(*net.TCPAddr).Port))
+		go http.Serve(ln, a.MediaHandler())
+	}
 	configureBrowser(w)
 	// Files dropped from Explorer arrive with their paths (see the patched
 	// go-webview2 in third_party); check them and let the page confirm.

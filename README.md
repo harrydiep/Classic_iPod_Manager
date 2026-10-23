@@ -9,13 +9,16 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 - **Remove songs**, singly or in bulk (Delete key or right-click). The files are deleted from the iPod and the songs disappear from every playlist.
 - **Edit metadata** with a Get Info sheet: name, artist, album artist, album, grouping, composer, comments, genre, year, track/disc numbers, BPM, rating and compilation. Select several songs to edit them together. Only the fields you tick change. By default the changes are also written into the song files' own tags (ID3v2 for MP3, iTunes atoms for M4A), with artwork and other tags preserved.
 - **Album artwork** in Get Info: the picture embedded in the song file, or the cover the iPod stores in its own artwork database (from iTunes). Click it to view it larger. Songs you add get their embedded cover put into the iPod's artwork database too, so the iPod shows it.
-- **Videos**: add and remove videos in the **Videos** section under the iPod (Add Videos, Add Folder, drag and drop, Delete). See below.
+- **Playlists**: make, rename, delete and edit playlists. See below.
+- **Playback**: double-click a song (or video) to play it in the app. Play/pause, previous, next and volume sit left of the display, which shows the song and a position bar you can click or drag to seek. Playback carries on down the list. See below.
+- **Transfer speed**: while songs or videos are copied to or from the iPod, the display shows the speed and the time left, for example "Copying 3 of 12 · 18.4 MB/s · 1:20 left".
+- **Videos**: add and remove videos in the **Videos** section under the iPod, which has **Movies**, **TV Shows** and **Music Videos** inside it (Add Videos, Add Folder, drag and drop, Delete). See below.
 - **Artwork pane**: the cover of the song or video you click shows at the bottom of the left pane. Click it to view it larger, or click its heading to fold it away.
 - **Format Manager** (Formats button, Ctrl+M, or right-click songs on the iPod): change the details and album artwork of songs on the computer or the iPod, and convert them between MP3, AAC, Apple Lossless, WAV, AIFF, FLAC and Ogg Vorbis at the bit rate you choose. See below.
 - A song list with name, time, artist, album, genre, year, file type, bit rate, size, date added, rating and plays. Every column (Name included) can be resized freely; double-click a column edge to fit it to its contents, and right-click the header to show or hide columns. Columns sort by clicking their heading.
 - Inline star ratings, search, and a Genre / Artist / Album browser.
 - The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
-- Copy songs back to the computer (organised as Artist\Album\NN Title).
+- Copy songs back to the computer (organised as Artist\Album\NN Title), or drag them out of the window.
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
 - **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. Classic iPod Manager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute. Click it for a Battery window with a step-by-step report you can copy, which shows where the request fails if your iPod doesn't answer.
 - Keeps play counts, ratings, smart playlists and On-The-Go playlists made on the iPod.
@@ -23,11 +26,33 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 
 ## Videos
 
-Open **Videos** under the iPod in the sidebar. **Add Videos** picks video files, **Add Folder** adds every video in a folder, and you can drag videos onto the window. Select videos and press Delete (or right-click) to remove them.
+Open **Videos** under the iPod in the sidebar. Inside it are **Movies**, **TV Shows** and **Music Videos**, matching the iPod's own Videos menu. **Add Videos** picks video files, **Add Folder** adds every video in a folder, and you can drag videos onto the window. Videos added while one of the three sections is open are filed in that section on the iPod. Added from **Videos** itself, a video goes where its own iTunes tag says (TV show or music video), otherwise to Movies. To move videos to another section, drag them onto it in the sidebar or right-click → **Move to**. Select videos and press Delete (or right-click) to remove them.
 
 The iPod 5th generation plays MPEG-4 videos: H.264 Baseline up to 640×480 or MPEG-4 up to 480×480, with AAC sound. Videos that already fit are copied as they are. Anything else (HD video, H.264 High profile, MKV, AVI, WMV, QuickTime .mov, MP3 sound and so on) is converted with FFmpeg first, to 640×480 H.264 with AAC sound, and you're asked before it starts. This needs `ffmpeg.exe` in one of the encoder folders (the Decoder folder is the natural place). Converted copies are kept in the main folder's `Converted Videos` folder. The original iPod 5G (not the late-2006 5.5G) needs firmware 1.2 or later for 640×480 video.
 
-Each video gets a thumbnail for the iPod's menus: its own cover picture if it has one, otherwise a frame from about a tenth of the way in (with FFmpeg). In Get Info, **Video kind** files it under Movies, Music Videos or TV Shows on the iPod; TV shows are grouped by their Album name.
+Each video gets a thumbnail for the iPod's menus: its own cover picture if it has one, otherwise a frame from about a tenth of the way in (with FFmpeg). In Get Info, **Video kind** also changes the section. TV shows are grouped by their Album name.
+
+## Playlists
+
+The **Playlists** heading in the sidebar lists the iPod's playlists.
+
+- **New playlist**: click **+** next to the heading (or Ctrl+N), type a name and press Enter. Or select songs, right-click and choose **Add to Playlist → New Playlist from Selection**, or drag the songs onto the Playlists heading.
+- **Add songs**: drag them onto a playlist, or right-click and choose **Add to Playlist**. Songs already in the playlist aren't added twice.
+- **Reorder**: in a playlist sorted by the first (#) column, drag songs up or down. Click the # heading to get back to the playlist's own order after sorting by another column.
+- **Remove songs from a playlist**: select them and press Delete, or right-click → **Remove from Playlist**. The songs stay on the iPod. (Shift+Delete, or **Remove from iPod…**, deletes them from the iPod.)
+- **Rename** a playlist by double-clicking it, and **delete** it by right-clicking it. Deleting a playlist leaves its songs on the iPod.
+
+Smart playlists, On-The-Go playlists and Podcasts come from the iPod or iTunes and are shown but can't be edited here.
+
+## Playback
+
+Double-click a song to play it, or select songs and press Space. The songs after it in the list play next. The controls are left of the display: previous (restarts the song if it's more than three seconds in), play/pause and next, then volume and mute. Keyboard: Space play/pause, Ctrl+Left / Ctrl+Right previous / next, Ctrl+Up / Ctrl+Down volume. The mouse wheel over the controls also changes the volume.
+
+The display shows the playing song, its artist and album, and a position bar: click or drag it to jump. The playing song has a speaker beside its name.
+
+Videos play in a small window you can move by its title bar; ⤢ makes it full screen and ✕ stops it. Songs in the Format Manager play the same way (double-click), including songs on the computer.
+
+MP3, AAC, WAV, FLAC and Ogg play directly. AIFF, Apple Lossless and other formats are decoded first with the encoders in the main folder (FFmpeg in the Decoder folder covers everything); the five most recent are kept in `Temp\Playback` and cleared when the app starts. Playback reads the files straight from the iPod through a small web server on 127.0.0.1 (a random port, with a random key) that only Classic iPod Manager uses.
 
 ## Format Manager
 
@@ -70,12 +95,12 @@ Put an encoder into its folder (or a folder inside it, as it comes out of its zi
 
 1. Run `Classic iPod Manager.exe` (no installer needed) and plug in the iPod. It appears under **Devices**.
 2. If the iPod has never been used with iTunes, Classic iPod Manager offers to create an empty music library.
-3. Use **Add Songs**, **Add Folder**, **Get Info** (Ctrl+I or double-click) and **Remove** (Delete).
+3. Use **Add Songs**, **Add Folder**, **Get Info** (Ctrl+I or Enter) and **Remove** (Delete). Double-click a song to play it.
 4. Click **Eject** (⏏) before unplugging so the iPod can rebuild its menus.
 
 Every change is written to the iPod straight away. The first time Classic iPod Manager changes an iPod during a session, it backs up the database to `iPod_Control\iTunes\iTunesDB.podmanager.bak` (the file keeps its old name) and to `%APPDATA%\Classic iPod Manager\Backups\<iPod name>\`. The last 10 copies are kept there. To restore a backup, copy one back over `iPod_Control\iTunes\iTunesDB`.
 
-Keyboard: Ctrl+O add songs · Ctrl+I get info · Ctrl+M Format Manager · Ctrl+F search · Ctrl+B browser · Ctrl+A select all · Delete remove · Enter get info · Ctrl+, options · Ctrl+plus / Ctrl+minus / Ctrl+0 (or Ctrl+mouse wheel) interface size.
+Keyboard: Ctrl+O add songs · Ctrl+I get info · Ctrl+N new playlist · Space play/pause · Ctrl+Left/Right previous/next · Ctrl+Up/Down volume · Ctrl+M Format Manager · Ctrl+F search · Ctrl+B browser · Ctrl+A select all · Delete remove · Enter get info · Ctrl+, options · Ctrl+plus / Ctrl+minus / Ctrl+0 (or Ctrl+mouse wheel) interface size.
 
 ## Building from source
 
@@ -106,7 +131,7 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 | `internal/convert` | Finds encoders in their folders, runs decode → encode → tag conversions, and converts videos for the iPod with FFmpeg |
 | `internal/iap` | Just enough of the iPod Accessory Protocol to ask for the battery level over USB |
 | `internal/ipod` | iPod layout, model detection, safe saving with backups, file naming, writing the iPod's artwork database |
-| `internal/app` | Operations the UI calls, plus background jobs with progress |
+| `internal/app` | Operations the UI calls, background jobs with progress and transfer speed, playlists, and the playback server |
 | `ui/index.html` | The interface (embedded in the exe) |
 | `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer, the iPod's USB accessory (HID) interface for the battery |
 | `third_party/go-webview2` | [go-webview2](https://github.com/jchv/go-webview2) (MIT) with a small patch that passes the paths of files dropped on the window |
@@ -115,7 +140,8 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 
 - Classic iPod Manager writes album art to the iPod's cover database for the 5th generation iPod only (the formats it uses are known); other models are read-only anyway.
 - Podcasts and audiobooks aren't managed separately. .m4b files are added as audiobooks.
-- Playlists are shown, but creating or editing playlists isn't supported yet.
+- Smart playlists can't be created or edited.
+- Playback in the app uses the WebView's own players: MPEG-4 Part 2 videos (rather than H.264) may not play in the app even though they play on the iPod.
 - Classic iPod Manager doesn't include encoders; put the ones you want to use in the encoder folders (see Format Manager).
 - The battery reading depends on the iPod answering over its USB accessory interface. If it doesn't, the battery icon still shows full and green while the iPod is connected, and the popover says the level is unavailable. Some firmware reports no level while charging; then only "Charging" is shown.
 

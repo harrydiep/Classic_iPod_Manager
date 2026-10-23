@@ -45,7 +45,7 @@ button{cursor:default}
 .app{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
 
 /* ---------- toolbar (brushed aluminium) ---------- */
-.toolbar{display:grid;grid-template-columns:auto 1fr minmax(calc(320px*var(--fs)),calc(460px*var(--fs))) 1fr auto;align-items:center;gap:14px;padding:9px 14px 10px;
+.toolbar{display:grid;grid-template-columns:auto 1fr minmax(calc(280px*var(--fs)),calc(460px*var(--fs))) 1fr auto;align-items:center;gap:14px;padding:9px 14px 10px;
   background:
     repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.025) 1px 2px,transparent 2px 4px),
     linear-gradient(var(--alu-top),var(--alu-mid) 55%,var(--alu-bot));
@@ -59,6 +59,51 @@ button{cursor:default}
 .tbtn:disabled{opacity:.42}
 .tbtn svg{width:16px;height:16px}
 .spacer{width:10px}
+/* playback controls, left of the LCD */
+.transport{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.pbtn{width:30px;height:30px;border-radius:50%;padding:0;display:grid;place-items:center;color:var(--text);
+  background:linear-gradient(var(--btn-a),var(--btn-b));border:1px solid var(--btn-line);box-shadow:inset 0 1px 0 var(--alu-hi),0 1px 0 rgba(255,255,255,.35);flex:none}
+.pbtn.big{width:36px;height:36px}
+.pbtn svg{width:14px;height:14px}
+.pbtn.big svg{width:17px;height:17px}
+.pbtn:active:not(:disabled){background:linear-gradient(var(--btn-b),var(--btn-a));box-shadow:inset 0 1px 3px rgba(0,0,0,.25)}
+.pbtn:disabled{opacity:.42}
+.vol{display:flex;align-items:center;gap:3px;margin-left:6px;flex:none}
+.volbtn{border:0;background:none;padding:0;width:20px;height:20px;display:grid;place-items:center;color:var(--text);flex:none;border-radius:4px}
+.volbtn svg{width:15px;height:15px}
+.vol input{width:calc(76px*var(--fs));min-width:36px;accent-color:var(--focus);height:14px}
+:root[data-modern] .pbtn{background:var(--tb-ctl);border:1px solid var(--tb-ctl-line);box-shadow:none;color:var(--tb-text)}
+:root[data-modern] .pbtn:hover:not(:disabled){background:var(--tb-ctl-hover)}
+:root[data-modern] .pbtn.big{background:var(--accent);border-color:transparent;color:#fff}
+:root[data-theme="red"] .pbtn.big{background:#fff;color:var(--accent)}
+:root[data-modern] .volbtn{color:var(--tb-text)}
+/* now playing in the LCD */
+.lcd-np{display:flex;align-items:baseline;justify-content:center;gap:6px;min-width:0;white-space:nowrap}
+.lcd-np b{font-weight:600;font-size:calc(12.5px*var(--fs));overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.lcd-np span{font-size:calc(11px*var(--fs));color:#56606b;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.lcd-seek{display:flex;align-items:center;gap:7px;margin-top:3px;font-size:calc(10px*var(--fs));font-variant-numeric:tabular-nums;color:#56606b;position:relative;z-index:1}
+.lcd-seek .tm{flex:none;min-width:30px}
+.lcd-seek .tm.r{text-align:right}
+.seekbar{flex:1;height:7px;border-radius:4px;border:1px solid #7c8a99;background:#fff;position:relative;cursor:pointer}
+.seekbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#56606b}
+.seekbar i.buf{background:#c9d1da}
+.seekbar b{position:absolute;top:50%;width:9px;height:9px;margin:-5px 0 0 -5px;border-radius:50%;background:#2f3a46;box-shadow:0 0 0 1.5px #fff}
+:root[data-modern] .lcd-np span,:root[data-modern] .lcd-seek{color:var(--lcd-muted)}
+:root[data-modern] .seekbar{border-color:var(--lcd-sep);background:var(--lcd-sep)}
+:root[data-modern] .seekbar i{background:var(--accent)}
+:root[data-modern] .seekbar i.buf{background:color-mix(in srgb,var(--lcd-muted) 30%,transparent)}
+:root[data-modern] .seekbar b{background:var(--accent);box-shadow:0 0 0 1.5px var(--lcd-glass)}
+.lcd-speed{font-variant-numeric:tabular-nums}
+.td .np{width:12px;height:12px;vertical-align:-2px;margin-right:4px;color:var(--focus)}
+.row.sel .td .np{color:inherit}
+/* video window */
+.vwin{position:fixed;z-index:60;right:24px;bottom:44px;width:min(560px,calc(100vw - 48px));background:#000;border-radius:10px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.45);display:flex;flex-direction:column}
+.vwin.hidden{display:none}
+.vwin-bar{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;background:#1d1f22;color:#e8eaed;font-size:calc(12px*var(--fs));cursor:move;user-select:none}
+.vwin-bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vwin-bar button{border:0;background:none;color:#c9ccd1;width:24px;height:22px;border-radius:5px;padding:0;font-size:13px;cursor:default}
+.vwin-bar button:hover{background:rgba(255,255,255,.12);color:#fff}
+.vwin video{width:100%;aspect-ratio:4/3;max-height:70vh;background:#000;display:block}
 
 /* LCD: the one bright, memorable element */
 .lcd{grid-column:3;height:calc(52px*var(--fs));border-radius:7px;padding:2px;background:linear-gradient(#8e98a3,#b9c1ca);box-shadow:inset 0 1px 2px rgba(0,0,0,.45),0 1px 0 var(--alu-hi)}
@@ -313,15 +358,36 @@ button{cursor:default}
 .ctx .tick{display:inline-block;width:16px;margin-left:-8px}
 .ctx div:hover{background:linear-gradient(var(--sel-a),var(--sel-b));color:#fff}
 .ctx hr{border:0;border-top:1px solid #d5d9de;margin:4px 0}
+.ctx .dis{color:#9aa1aa;pointer-events:none}
+.ctx .hassub{position:relative;padding-right:28px}
+.ctx .hassub::after{content:"▸";position:absolute;right:10px}
+.ctx .subm{display:none;position:absolute;left:100%;top:-5px;margin-left:-2px}
+.ctx .hassub:hover>.subm{display:block}
+.ctx .subm.left{left:auto;right:100%;margin-left:0;margin-right:-2px}
+.shead.plhead{display:flex;align-items:center;justify-content:space-between;padding-right:8px}
+.addpl{border:0;background:none;color:var(--source-head);font:inherit;font-size:calc(15px*var(--fs));line-height:1;width:20px;height:18px;border-radius:4px;padding:0;display:grid;place-items:center}
+.addpl:hover{background:rgba(0,0,0,.1);color:var(--text)}
+.sitem.child2{padding-left:50px}
+:root[data-modern] .sitem.child2{padding-left:42px}
+.sitem.hint{color:var(--faint);font-style:italic;font-size:calc(11.5px*var(--fs))}
+.sitem.droptarget{outline:2px solid var(--focus);outline-offset:-2px;border-radius:5px;background:color-mix(in srgb,var(--focus) 14%,transparent)}
+.plhead.droptarget{outline:2px solid var(--focus);outline-offset:-2px;border-radius:5px}
+.dragghost{position:fixed;z-index:80;pointer-events:none;padding:5px 10px 6px;border-radius:7px;background:var(--sheet);color:var(--text);border:1px solid var(--sheet-line);box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:calc(12px*var(--fs));max-width:280px}
+.dragghost b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dragghost span{display:block;color:var(--muted);font-size:calc(11px*var(--fs))}
+.dropline{position:absolute;left:0;right:0;height:2px;margin-top:-1px;background:var(--focus);z-index:3;pointer-events:none}
+.dropline::before{content:"";position:absolute;left:2px;top:-3px;width:8px;height:8px;border-radius:50%;border:2px solid var(--focus);background:var(--list)}
+body.ldragging,body.ldragging *{cursor:default!important}
 .hidden{display:none!important}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 ::-webkit-scrollbar{width:13px;height:13px}
 ::-webkit-scrollbar-track{background:var(--list)}
 ::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#c9ced4,#aeb5bd);border-radius:7px;border:3px solid var(--list)}
 :root[data-dark] ::-webkit-scrollbar-thumb{background:#4b4e54;border-color:var(--list)}
-@media (max-width:1000px){.toolbar{grid-template-columns:auto 0 1fr 0 auto}.tbtn .t{display:none}.tbtn{min-width:40px}.search{width:140px}}
+@media (max-width:1180px){.vol input{width:48px}}
+@media (max-width:1000px){.toolbar{grid-template-columns:auto auto 1fr 0 auto}.vol input{display:none}.pbtn{width:26px;height:26px}.pbtn.big{width:30px;height:30px}.tbtn .t{display:none}.tbtn{min-width:40px}.search{width:140px}}
 @media (max-width:780px){:root{--sidebar:156px}.toolbar{gap:8px;padding:7px 8px}.tgroup{gap:2px}.tbtn{min-width:34px}.spacer{width:2px}.search{width:104px}.lcd{min-width:0}.footer .stats{font-size:calc(10.5px*var(--fs))}}
-@media (max-width:600px){.search{width:84px}.lcd-line2{display:none}.tbtn .cap{width:30px}}
+@media (max-width:600px){.vol{display:none}.search{width:84px}.lcd-line2{display:none}.tbtn .cap{width:30px}}
 
 /* drag & drop */
 .dropzone{position:fixed;inset:0;z-index:40;pointer-events:none;display:none}
@@ -576,6 +642,13 @@ button{cursor:default}
   <symbol id="i-note" viewBox="0 0 16 16"><path d="M6 12.2V3.6l7-1.5v8.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><ellipse cx="4.4" cy="12.3" rx="2" ry="1.6" fill="currentColor"/><ellipse cx="11.4" cy="10.6" rx="2" ry="1.6" fill="currentColor"/></symbol>
   <symbol id="i-list" viewBox="0 0 16 16"><path d="M5.5 4h8M5.5 8h8M5.5 12h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="2.7" cy="4" r="1" fill="currentColor"/><circle cx="2.7" cy="8" r="1" fill="currentColor"/><circle cx="2.7" cy="12" r="1" fill="currentColor"/></symbol>
   <symbol id="i-gear" viewBox="0 0 16 16"><path d="M8 1.8 9.4 4l2.5-.6.3 2.6 2.3 1.1-1.3 2.2 1 2.4-2.5.6-.8 2.4-2.2-1.3L6.4 14.7l-1-2.4-2.6-.3.4-2.6L1.4 7.8 3.4 6l-.3-2.6 2.6.3z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><circle cx="8" cy="8.2" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 16 16"><path d="M5 3.2v9.6c0 .5.5.8.9.5l7.4-4.8c.4-.2.4-.8 0-1L5.9 2.7c-.4-.3-.9 0-.9.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 16 16"><rect x="3.8" y="3" width="3" height="10" rx=".8" fill="currentColor"/><rect x="9.2" y="3" width="3" height="10" rx=".8" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 16 16"><rect x="2" y="3.5" width="1.8" height="9" rx=".6" fill="currentColor"/><path d="M8.6 3.8v8.4L3.6 8zM14.4 3.8v8.4L9.4 8z" fill="currentColor"/></symbol>
+  <symbol id="i-next" viewBox="0 0 16 16"><rect x="12.2" y="3.5" width="1.8" height="9" rx=".6" fill="currentColor"/><path d="M7.4 3.8v8.4L12.4 8zM1.6 3.8v8.4L6.6 8z" fill="currentColor"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 16 16"><path d="M2 6h2.6L8 3v10L4.6 10H2z" fill="currentColor"/><path d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 16 16"><path d="M2 6h2.6L8 3v10L4.6 10H2z" fill="currentColor"/><path d="m10.5 6 4 4m0-4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 16 16"><path d="M2 6h2.6L8 3v10L4.6 10H2z" fill="currentColor"/><path d="M10.4 5.4a3.6 3.6 0 0 1 0 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
   <symbol id="i-x" viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -589,7 +662,12 @@ button{cursor:default}
       <button class="tbtn" id="bInfo" title="Get Info (Ctrl+I)"><span class="cap"><svg><use href="#i-info"/></svg></span><span class="t">Get Info</span></button>
       <button class="tbtn" id="bRemove" title="Remove from iPod (Delete)"><span class="cap"><svg><use href="#i-remove"/></svg></span><span class="t">Remove</span></button>
     </div>
-    <div></div>
+    <div class="transport" id="transport" role="group" aria-label="Playback">
+      <button class="pbtn" id="pPrev" title="Previous (Ctrl+Left)" aria-label="Previous"><svg><use href="#i-prev"/></svg></button>
+      <button class="pbtn big" id="pPlay" title="Play (Space)" aria-label="Play"><svg><use href="#i-play" id="pPlayIcon"/></svg></button>
+      <button class="pbtn" id="pNext" title="Next (Ctrl+Right)" aria-label="Next"><svg><use href="#i-next"/></svg></button>
+      <div class="vol"><button class="volbtn" id="pMute" title="Mute" aria-label="Mute"><svg><use href="#i-vol" id="pVolIcon"/></svg></button><input type="range" id="pVol" min="0" max="1" step="0.01" value="0.8" aria-label="Volume" title="Volume"></div>
+    </div>
     <div class="lcd" role="status" aria-live="polite">
       <div class="lcd-in">
         <div class="lcd-title"><span id="lcdTitle">Classic iPod Manager</span><span class="battbox unknown" id="battBox" tabindex="0" role="img" aria-label="Battery" aria-describedby="battPop"><svg class="bolt" aria-hidden="true"><use href="#i-bolt"/></svg><span class="batt"><i id="lcdBatt" style="width:100%"></i></span></span></div>
@@ -617,6 +695,11 @@ button{cursor:default}
   </footer>
 </div>
 
+<audio id="pAudio" preload="auto"></audio>
+<div class="vwin hidden" id="vwin" role="dialog" aria-label="Video">
+  <div class="vwin-bar" id="vwinBar"><span id="vwinTitle"></span><button id="vwinFull" title="Full screen" aria-label="Full screen">⤢</button><button id="vwinClose" title="Stop and close" aria-label="Close">✕</button></div>
+  <video id="pVideo" preload="auto" playsinline></video>
+</div>
 <script>
 "use strict";
 (function(){
@@ -642,8 +725,9 @@ const sortKey = s => (s||"").toLowerCase().replace(/^the\s+/, "").normalize("NFD
 // Every song-list column. text() is the plain value (used for sizing a
 // column to fit); html() overrides how it is drawn.
 const COLS = [
+  {key:"playlist", label:"", w:30, r:true, m:true, text:t => S.plIndex && S.plIndex.has(t.id) ? String(S.plIndex.get(t.id) + 1) : ""},
   {key:"trackNumber", label:"#", w:34, r:true, m:true, text:t => t.trackNumber ? String(t.trackNumber) : ""},
-  {key:"title", label:"Name", w:200, text:t => t.title || ""},
+  {key:"title", label:"Name", w:200, text:t => t.title || "", html:t => (P.cur && P.cur.id === t.id ? `<svg class="np" aria-label="Now playing"><use href="#i-speaker"/></svg>` : "") + esc(t.title || "")},
   {key:"lengthMs", label:"Time", w:48, r:true, text:t => fmtTime(t.lengthMs)},
   {key:"artist", label:"Artist", w:140, text:t => t.artist || ""},
   {key:"album", label:"Album", w:150, text:t => t.album || ""},
@@ -668,7 +752,15 @@ function fmtDate(sec){
   return sec ? new Date(sec*1000).toLocaleDateString(undefined, {day:"2-digit", month:"2-digit", year:"numeric"}) : "";
 }
 function colWidth(c){ const w = +S.widths[c.key]; return w > 0 ? w : c.w; }
-function visibleCols(){ return COLS.filter(c => c.key === "title" || !S.hidden.has(c.key)); }
+function visibleCols(){ return COLS.filter(c => c.key === "playlist" ? isPlView() : (c.key === "title" || !S.hidden.has(c.key))); }
+function isPlView(){ return S.view.startsWith("pl:"); }
+function curPlaylist(){ return S.lib && isPlView() ? S.lib.playlists.find(p => "pl:" + p.id === S.view) || null : null; }
+function curSort(){ return isPlView() ? S.plSort : S.sort; }
+function setSort(v){ if (isPlView()){ S.plSort = v; store.set("plSort", v); } else { S.sort = v; store.set("sort", v); } }
+// the section videos added now are filed under (0 = their own kind / Movies)
+function viewVideoType(){ return S.view.startsWith("v:") ? +S.view.slice(2) : 0; }
+function isVideoView(){ return S.view === "videos" || S.view.startsWith("v:"); }
+const VIDEO_KINDS = [[2, "Movies", "Movie"], [64, "TV Shows", "TV Show"], [32, "Music Videos", "Music Video"]];
 const S = {
   devices: [], lib: null, byId: new Map(), setupRoot: null,
   view: "music",            // summary | music | pl:<index> | setup | none
@@ -677,7 +769,7 @@ const S = {
   search: "", browser: store.get("browser", false), bsel: {genre:null, artist:null, album:null},
   widths: {}, hidden: new Set(),
   theme: store.get("theme", "auto"), scale: 1,
-  busy: null, flash: null, batt: null, list: [], listDirty: true, renaming: false,
+  busy: null, flash: null, batt: null, plSort: store.get("plSort", {key:"playlist", dir:1}), plIndex: null, renamingPl: null, list: [], listDirty: true, renaming: false,
 };
 let ROW = 20;
 const TEXT_SIZES = [[0.9, "Small"], [1, "Medium"], [1.15, "Large"], [1.3, "Larger"], [1.5, "Largest"]];
@@ -847,15 +939,28 @@ function renderLCD(){
   if (S.busy){
     const b = S.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
     const verb = {add:"Copying", remove:"Removing", update:"Updating", export:"Copying to computer", convert:"Converting", retag:"Saving"}[b.job] || "Working";
-    const line1 = b.total ? `${verb} ${Math.min(b.done+1, b.total).toLocaleString()} of ${b.total.toLocaleString()}` : verb+"…";
-    body.innerHTML = `<div class="lcd-line1">${esc(line1)}</div>
-      <div class="lcd-progress"><div class="pbar ${b.total ? "" : "indet"}"><i style="width:${pct}%"></i></div>
+    let line1 = b.total ? `${verb} ${Math.min(b.done+1, b.total).toLocaleString()} of ${b.total.toLocaleString()}` : verb+"…";
+    let w = pct, indet = !b.total;
+    if (b.bytesTotal > 0){ w = Math.min(100, Math.round(b.bytesDone / b.bytesTotal * 100)); indet = false; }
+    const sp = speedText(b);
+    if (sp) line1 += " · " + sp;
+    body.innerHTML = `<div class="lcd-line1 lcd-speed" title="${esc(b.direction === "from" ? "Copying from the iPod" : b.direction === "to" ? "Copying to the iPod" : "")}">${esc(line1)}</div>
+      <div class="lcd-progress"><div class="pbar ${indet ? "indet" : ""}"><i style="width:${w}%"></i></div>
       <button class="lcd-x" id="lcdCancel" title="Stop after the current song" aria-label="Stop"><svg width="9" height="9"><use href="#i-x"/></svg></button></div>`;
     body.title = b.label || "";
     $("#lcdCancel").onclick = () => api("cancel");
     return;
   }
   if (S.flash){ body.innerHTML = `<div class="lcd-line1">${esc(S.flash.a)}</div><div class="lcd-line2">${esc(S.flash.b||"")}</div>`; return; }
+  if (P.cur){
+    const c = P.cur, sub = [c.artist, c.album].filter(Boolean).join(" — ");
+    body.title = "";
+    body.innerHTML = `<div class="lcd-np"><b>${esc(c.title || "Untitled")}</b>${sub ? `<span>${esc(sub)}</span>` : ""}</div>
+      <div class="lcd-seek"><span class="tm" id="npPos">0:00</span><div class="seekbar" id="npSeek" role="slider" aria-label="Position" tabindex="0"><i class="buf" id="npBuf"></i><i id="npFill"></i><b id="npKnob"></b></div><span class="tm r" id="npLeft">-0:00</span></div>`;
+    bindSeek($("#npSeek"));
+    paintProgress();
+    return;
+  }
   if (!lib){
     const l1 = S.view === "setup" ? "New iPod" : S.devices.length ? "Select your iPod" : "No iPod connected";
     body.innerHTML = `<div class="lcd-line1">${l1}</div><div class="lcd-line2">${S.devices.length ? "" : "Connect it with its USB cable"}</div>`;
@@ -866,6 +971,26 @@ function renderLCD(){
     <div class="lcd-line2">${esc(fmtBytes(lib.device.free))} free of ${esc(fmtBytes(lib.device.total))}</div>`;
 }
 let flashTimer;
+function fmtRate(bps){
+  if (bps >= 1e9) return (bps / 1e9).toFixed(1) + " GB/s";
+  if (bps >= 1e6) return (bps / 1e6).toFixed(bps >= 1e8 ? 0 : 1) + " MB/s";
+  if (bps >= 1e3) return Math.round(bps / 1e3) + " KB/s";
+  return Math.round(bps) + " B/s";
+}
+function fmtLeft(sec){
+  sec = Math.round(sec);
+  if (sec < 60) return sec + "s left";
+  if (sec < 3600) return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0") + " left";
+  return Math.floor(sec / 3600) + " h " + Math.floor(sec % 3600 / 60) + " min left";
+}
+// "18.4 MB/s · 1:20 left" while files are being copied to or from the iPod
+function speedText(b){
+  if (!b || !b.direction) return "";
+  if (!(b.speed > 0)) return b.bytesDone > 0 ? "stalled" : "";
+  let t = fmtRate(b.speed);
+  if (b.bytesTotal > b.bytesDone) t += " · " + fmtLeft((b.bytesTotal - b.bytesDone) / b.speed);
+  return t;
+}
 
 /* ------------------------------------------------------------------ battery */
 // The iPod reports its battery over its USB accessory interface. The icon
@@ -1019,17 +1144,32 @@ function renderSidebar(){
       const n = libCounts();
       h += `<div class="sitem child ${S.view === "music" ? "sel" : ""}" data-view="music"><svg><use href="#i-note"/></svg><span class="lbl">Music</span><span class="cnt">${n.songs.toLocaleString()}</span></div>`;
       h += `<div class="sitem child ${S.view === "videos" ? "sel" : ""}" data-view="videos"><svg><use href="#i-video"/></svg><span class="lbl">Videos</span><span class="cnt">${n.videos ? n.videos.toLocaleString() : ""}</span></div>`;
+      for (const [mt, label] of VIDEO_KINDS){
+        const c = S.lib.tracks.filter(t => t.video && (t.mediaType & mt)).length;
+        h += `<div class="sitem child2 ${S.view === "v:" + mt ? "sel" : ""}" data-view="v:${mt}" data-vkind="${mt}" title="Videos added here are filed under ${label} on the iPod"><span class="lbl">${label}</span><span class="cnt">${c ? c.toLocaleString() : ""}</span></div>`;
+      }
     }
   }
-  if (S.lib && S.lib.playlists.length){
-    h += `<div class="shead">Playlists</div>`;
-    S.lib.playlists.forEach((p, i) => {
-      h += `<div class="sitem ${S.view === "pl:"+i ? "sel" : ""}" data-view="pl:${i}" title="${p.smart ? "Smart playlist" : p.podcast ? "Podcasts" : "Playlist"}">
-        <svg><use href="#${p.smart ? "i-gear" : "i-list"}"/></svg><span class="lbl">${esc(p.name)}</span><span class="cnt">${p.trackIds.length.toLocaleString()}</span></div>`;
-    });
+  if (S.lib){
+    const ro = !!S.lib.readOnly;
+    h += `<div class="shead plhead" data-plhead="1"><span>Playlists</span>${ro ? "" : `<button class="addpl" id="newPl" title="New Playlist (Ctrl+N)" aria-label="New Playlist">+</button>`}</div>`;
+    for (const p of S.lib.playlists){
+      const kind = p.smart ? "Smart playlist – fills itself" : p.podcast ? "Podcasts" : "Playlist";
+      h += `<div class="sitem ${S.view === "pl:" + p.id ? "sel" : ""}" data-view="pl:${esc(p.id)}" data-pl="${esc(p.id)}" ${p.editable ? 'data-editable="1"' : ""} title="${esc(p.name)} · ${kind}">
+        <svg><use href="#${p.smart ? "i-gear" : "i-list"}"/></svg>${S.renamingPl === p.id ? `<input id="plRenameIn" value="${esc(p.name)}" aria-label="Playlist name">` : `<span class="lbl">${esc(p.name)}</span>`}<span class="cnt">${p.trackIds.length.toLocaleString()}</span></div>`;
+    }
+    if (!S.lib.playlists.length && !ro) h += `<div class="sitem hint" data-newpl="1">Drag songs here for a new playlist</div>`;
   }
   h += `<div class="shead">Tools</div><div class="sitem ${S.view === "fm" ? "sel" : ""}" data-view="fm" title="Edit details and artwork, and convert between formats (Ctrl+M)"><svg><use href="#i-convert"/></svg><span class="lbl">Format Manager</span>${FM.items.length ? `<span class="cnt">${FM.items.length.toLocaleString()}</span>` : ""}</div>`;
   sb.innerHTML = h;
+  const pi = $("#plRenameIn");
+  if (pi){ pi.focus(); pi.select();
+    pi.onkeydown = e => { if (e.key === "Enter") finishPlRename(pi.value); if (e.key === "Escape"){ S.renamingPl = null; renderSidebar(); } e.stopPropagation(); };
+    pi.onblur = () => finishPlRename(pi.value);
+    pi.onmousedown = pi.onclick = pi.ondblclick = e => e.stopPropagation();
+  }
+  const np = $("#newPl");
+  if (np) np.onclick = e => { e.stopPropagation(); newPlaylist(); };
   const ri = $("#renameIn");
   if (ri){ ri.focus(); ri.select();
     ri.onkeydown = e => { if (e.key === "Enter") finishRename(ri.value); if (e.key === "Escape"){ S.renaming = false; renderSidebar(); } e.stopPropagation(); };
@@ -1057,9 +1197,111 @@ $("#sidebar").addEventListener("click", e => {
   } else if (it.dataset.view){ setView(it.dataset.view); }
 });
 $("#sidebar").addEventListener("dblclick", e => {
+  const pl = e.target.closest(".sitem[data-pl]");
+  if (pl && S.lib && !S.lib.readOnly){ S.renamingPl = pl.dataset.pl; renderSidebar(); return; }
   const it = e.target.closest(".sitem[data-dev]");
   if (it && S.lib && S.lib.device.root === it.dataset.dev && !S.lib.readOnly){ S.renaming = true; renderSidebar(); }
 });
+$("#sidebar").addEventListener("contextmenu", e => {
+  if (!S.lib || S.lib.readOnly) return;
+  const pl = e.target.closest(".sitem[data-pl]");
+  if (pl){
+    e.preventDefault();
+    const p = S.lib.playlists.find(x => x.id === pl.dataset.pl); if (!p) return;
+    popMenu(e.clientX, e.clientY, [
+      {label: "Play", fn: () => { setView("pl:" + p.id); playList(S.list, 0); }, disabled: !p.trackIds.length},
+      {label: "Rename", fn: () => { S.renamingPl = p.id; renderSidebar(); }},
+      {label: "Delete Playlist…", fn: () => deletePlaylist(p)},
+      null,
+      {label: "New Playlist", fn: () => newPlaylist()},
+    ]);
+    return;
+  }
+  if (e.target.closest(".plhead, [data-newpl]")){ e.preventDefault(); popMenu(e.clientX, e.clientY, [{label: "New Playlist", fn: () => newPlaylist()}]); }
+});
+
+/* ------------------------------------------------------------------ playlists */
+function playlistById(id){ return S.lib ? S.lib.playlists.find(p => p.id === id) : null; }
+async function newPlaylist(ids, name){
+  if (!S.lib || S.lib.readOnly) return;
+  try {
+    const id = await api("createPlaylist", name || "untitled playlist", ids || []);
+    await reload();
+    S.view = "pl:" + id; S.sel.clear(); S.listDirty = true;
+    if (!name) S.renamingPl = id;
+    renderAll();
+    if (ids && ids.length) flash("New playlist", plural(ids.length, "song"));
+  } catch(e){ alertSheet("Couldn’t make the playlist", e.message); }
+}
+async function finishPlRename(v){
+  const id = S.renamingPl; if (!id) return;
+  S.renamingPl = null;
+  const p = playlistById(id);
+  v = v.trim();
+  if (p && v && v !== p.name){
+    try { await api("renamePlaylist", id, v); await reload(); return; } catch(e){ alertSheet("Couldn’t rename the playlist", e.message); }
+  }
+  renderSidebar();
+}
+function deletePlaylist(p){
+  sheet(`<div class="sheet-h">Delete the playlist “${esc(p.name)}”?</div><div class="sheet-b"><p>Its ${plural(p.trackIds.length, "song")} stay on the iPod; only the playlist goes.</p></div>
+    <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn danger" data-ok>Delete Playlist</button></div>`,
+    (v, close) => { v.querySelector("[data-c]").onclick = close;
+      v.querySelector("[data-ok]").onclick = async () => {
+        close();
+        try { await api("deletePlaylist", p.id); if (S.view === "pl:" + p.id) S.view = "music"; await reload(); flash("Playlist deleted", p.name); }
+        catch(e){ alertSheet("Couldn’t delete the playlist", e.message); }
+      }; });
+}
+async function addToPlaylist(id, ids){
+  const p = playlistById(id); if (!p || !ids.length) return;
+  try {
+    const n = await api("addToPlaylist", id, ids);
+    await reload();
+    flash(n ? `Added ${plural(n, "song")}` : "Already in the playlist", `to “${p.name}”`);
+  } catch(e){ alertSheet("Couldn’t add to the playlist", e.message); }
+}
+async function removeFromPlaylist(){
+  const p = curPlaylist(); if (!p || !p.editable || !S.sel.size) return;
+  const pos = []; p.trackIds.forEach((id, i) => { if (S.sel.has(id)) pos.push(i); });
+  try { await api("removeFromPlaylist", p.id, pos); S.sel.clear(); await reload(); flash(`Removed ${plural(pos.length, "song")}`, `from “${p.name}”`); }
+  catch(e){ alertSheet("Couldn’t change the playlist", e.message); }
+}
+function canReorder(){
+  const p = curPlaylist(), srt = curSort();
+  return !!(p && p.editable && srt.key === "playlist" && srt.dir > 0 && !S.search && !S.browser && S.lib && !S.lib.readOnly);
+}
+async function movePlaylistItems(to){
+  const p = curPlaylist(); if (!p) return;
+  const pos = []; p.trackIds.forEach((id, i) => { if (S.sel.has(id)) pos.push(i); });
+  try { await api("movePlaylistItems", p.id, pos, to); await reload(); } catch(e){ alertSheet("Couldn’t reorder the playlist", e.message); }
+}
+async function setVideoKind(ids, mt){
+  const label = (VIDEO_KINDS.find(k => k[0] === mt) || [0, ""])[1];
+  try { await api("update", ids, {mediaType: mt}, false); pendingAfterJob = () => flash(`Moved ${plural(ids.length, "video")}`, `to ${label}`); }
+  catch(e){ alertSheet("Couldn’t move the videos", e.message); }
+}
+
+/* ------------------------------------------------------------------ menus with submenus */
+// items: {label, fn, sub:[items], disabled} or null for a separator
+function popMenu(x, y, items){
+  closeCtx();
+  const fns = [];
+  const build = list => list.map(it => {
+    if (!it) return "<hr>";
+    if (it.sub) return `<div class="hassub ${it.disabled ? "dis" : ""}">${esc(it.label)}<div class="ctx subm">${build(it.sub)}</div></div>`;
+    fns.push(it.fn);
+    return `<div data-f="${fns.length - 1}" class="${it.disabled ? "dis" : ""}">${esc(it.label)}</div>`;
+  }).join("");
+  const m = document.createElement("div"); m.className = "ctx"; m.id = "ctx";
+  m.innerHTML = build(items);
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect(), z = cssZoom, vw = innerWidth / z, vh = innerHeight / z;
+  const left = Math.min(x / z, vw - r.width / z - 4);
+  m.style.left = left + "px"; m.style.top = Math.min(y / z, vh - r.height / z - 4) + "px";
+  if (left + r.width / z * 2 > vw) m.querySelectorAll(".subm").forEach(s => s.classList.add("left"));
+  m.onclick = e => { const d = e.target.closest("[data-f]"); if (!d) return; closeCtx(); fns[+d.dataset.f](); };
+}
 
 function setView(v){ S.view = v; S.sel.clear(); S.anchor = S.cursor = null; S.listDirty = true; S.bsel = {genre:null, artist:null, album:null}; renderAll(); }
 
@@ -1068,9 +1310,13 @@ function baseTracks(){
   if (!S.lib) return [];
   if (S.view === "music") return S.lib.tracks.filter(t => !t.video);
   if (S.view === "videos") return S.lib.tracks.filter(t => t.video);
-  if (S.view.startsWith("pl:")){
-    const p = S.lib.playlists[+S.view.slice(3)];
-    return p ? p.trackIds.map(id => S.byId.get(id)).filter(Boolean) : [];
+  if (S.view.startsWith("v:")){ const mt = +S.view.slice(2); return S.lib.tracks.filter(t => t.video && (t.mediaType & mt)); }
+  if (isPlView()){
+    const p = curPlaylist();
+    S.plIndex = new Map();
+    if (!p) return [];
+    p.trackIds.forEach((id, i) => { if (!S.plIndex.has(id)) S.plIndex.set(id, i); });
+    return p.trackIds.map(id => S.byId.get(id)).filter(Boolean);
   }
   return S.lib.tracks.filter(t => !t.video);
 }
@@ -1106,10 +1352,12 @@ function buildList(){
     if (artist !== null) list = list.filter(t => (t.albumArtist || t.artist || "") === artist);
     if (album !== null) list = list.filter(t => (t.album||"") === album);
   }
-  const isPl = S.view.startsWith("pl:");
-  if (!(isPl && S.sort.key === "playlist")){
-    const c = cmpBy(S.sort.key);
-    list = list.slice().sort((a, b) => c(a, b) * S.sort.dir);
+  const srt = curSort();
+  if (srt.key === "playlist"){
+    if (srt.dir < 0) list = list.slice().reverse();
+  } else {
+    const c = cmpBy(srt.key);
+    list = list.slice().sort((a, b) => c(a, b) * srt.dir);
   }
   S.list = list; S.listDirty = false;
   return list;
@@ -1244,16 +1492,17 @@ function syncHeader(){
 }
 function renderHead(){
   const head = $("#thead"); if (!head) return;
+  const srt = curSort();
   head.innerHTML = visibleCols().map(c => {
-    const on = S.sort.key === c.key;
-    return `<div class="th ${c.r ? "r" : ""} ${on ? "sorted" : ""}" data-key="${c.key}" role="columnheader" aria-sort="${on ? (S.sort.dir > 0 ? "ascending" : "descending") : "none"}">${esc(c.label)}${on ? `<span class="arrow">${S.sort.dir > 0 ? "▲" : "▼"}</span>` : ""}<span class="grip" data-col="${c.key}" title="Drag to resize · double-click to fit"></span></div>`;
+    const on = srt.key === c.key;
+    return `<div class="th ${c.r ? "r" : ""} ${on ? "sorted" : ""}" data-key="${c.key}" role="columnheader" ${c.key === "playlist" ? `title="Playlist order"` : ""} aria-sort="${on ? (srt.dir > 0 ? "ascending" : "descending") : "none"}">${esc(c.label)}${on ? `<span class="arrow">${srt.dir > 0 ? "▲" : "▼"}</span>` : ""}<span class="grip" data-col="${c.key}" title="Drag to resize · double-click to fit"></span></div>`;
   }).join("");
   head.onclick = e => {
     if (e.target.classList.contains("grip")) return;
     const th = e.target.closest(".th"); if (!th) return;
-    const k = th.dataset.key;
-    S.sort = S.sort.key === k ? {key:k, dir:-S.sort.dir} : {key:k, dir:1};
-    store.set("sort", S.sort); S.listDirty = true; renderHead(); renderRows(true);
+    const k = th.dataset.key, srt = curSort();
+    setSort(srt.key === k ? {key:k, dir:-srt.dir} : {key:k, dir:1});
+    S.listDirty = true; renderHead(); renderRows(true);
   };
   head.onmousedown = e => {
     if (!e.target.classList.contains("grip") || e.button !== 0) return;
@@ -1282,7 +1531,7 @@ function fitColumn(c){
 function columnMenu(x, y){
   closeCtx();
   const m = document.createElement("div"); m.className = "ctx"; m.id = "ctx";
-  m.innerHTML = COLS.filter(c => c.key !== "title").map(c => `<div data-col="${c.key}"><span class="tick">${S.hidden.has(c.key) ? "" : "✓"}</span>${esc(c.key === "trackNumber" ? "Track Number" : c.label)}</div>`).join("")
+  m.innerHTML = COLS.filter(c => c.key !== "title" && c.key !== "playlist").map(c => `<div data-col="${c.key}"><span class="tick">${S.hidden.has(c.key) ? "" : "✓"}</span>${esc(c.key === "trackNumber" ? "Track Number" : c.label)}</div>`).join("")
     + `<hr><div data-fit>Size All Columns to Fit</div><div data-reset>Reset Columns</div>`;
   document.body.appendChild(m);
   const r = m.getBoundingClientRect(), z = cssZoom;
@@ -1331,8 +1580,9 @@ function renderRows(force){
   const em = $("#empty");
   if (!list.length){
     em.classList.remove("hidden");
-    em.innerHTML = S.search ? `<div><p class="big">No ${S.view === "videos" ? "videos" : "songs"} match “${esc(S.search)}”</p><p>Try fewer words, or clear the search.</p></div>`
+    em.innerHTML = S.search ? `<div><p class="big">No ${isVideoView() ? "videos" : "songs"} match “${esc(S.search)}”</p><p>Try fewer words, or clear the search.</p></div>`
       : S.view.startsWith("pl:") ? `<div><p class="big">This playlist is empty</p></div>`
+      : S.view.startsWith("v:") ? `<div><p class="big">No ${esc((VIDEO_KINDS.find(k => "v:" + k[0] === S.view) || [0, "videos"])[1].toLowerCase().replace(/^tv/, "TV"))} yet</p><p>Use Add Videos, or drag videos here; they’re filed under ${esc((VIDEO_KINDS.find(k => "v:" + k[0] === S.view) || [0, "Videos"])[1])} on the iPod. Videos the iPod can’t play are converted with FFmpeg if it’s in an encoder folder.</p></div>`
       : S.view === "videos" ? `<div><p class="big">No videos on this iPod yet</p><p>Use Add Videos, or drag videos onto the window. Videos the iPod can’t play are converted with FFmpeg if it’s in an encoder folder.</p></div>`
       : `<div><p class="big">No music on this iPod yet</p><p>Use Add Songs or Add Folder to copy music from your computer.</p></div>`;
   } else em.classList.add("hidden");
@@ -1345,7 +1595,8 @@ function updateButtons(){
   $("#bAdd").disabled = ro || busy; $("#bFolder").disabled = ro || busy;
   $("#bInfo").disabled = ro || busy || !n; $("#bRemove").disabled = ro || busy || !n;
   $("#bBrowse").classList.toggle("on", S.browser && S.view !== "fm"); $("#bBrowse").disabled = !S.lib;
-  const vids = S.view === "videos";
+  const vids = isVideoView();
+  paintTransport();
   $("#bAdd .t").textContent = vids ? "Add Videos" : "Add Songs";
   $("#bAdd").title = vids ? "Add videos (Ctrl+O)" : "Add songs (Ctrl+O)";
   $("#bFolder").title = vids ? "Add every video in a folder" : "Add every song in a folder";
@@ -1366,7 +1617,12 @@ function bindTable(sc){
     else if (S.sel.has(id) && S.sel.size > 1){ pendingCollapse = id; } // may be the start of a drag
     else { S.sel.clear(); S.sel.add(id); S.anchor = id; }
     if (e.button === 0 && S.sel.has(id) && !e.target.closest("[data-star]")) dragStart = {x: e.clientX, y: e.clientY};
-    S.cursor = id; renderRows(true); updateButtons();
+    S.cursor = id;
+    if (e.button === 0 && e.detail === 2 && !e.ctrlKey && !e.shiftKey && !e.target.closest("[data-star]")){
+      dragStart = null; pendingCollapse = null; S.sel.clear(); S.sel.add(id); S.anchor = id;
+      playList(S.list, i); updateButtons(); return;
+    }
+    renderRows(true); updateButtons();
   });
   sc.addEventListener("click", e => {
     const st = e.target.closest("[data-star]");
@@ -1375,7 +1631,8 @@ function bindTable(sc){
       setRating([id], t.rating === r ? 0 : r);
     }
   });
-  sc.addEventListener("dblclick", e => { if (e.target.closest(".row") && !e.target.closest("[data-star]")) openInfo(); });
+  // double-click plays (rows are redrawn on mousedown, so the browser's
+  // dblclick event wouldn't land on the row; the click count does)
   sc.addEventListener("contextmenu", e => {
     e.preventDefault();
     const row = e.target.closest(".row"); if (!row) return;
@@ -1383,6 +1640,7 @@ function bindTable(sc){
   });
   sc.addEventListener("keydown", e => {
     const list = S.list; if (!list.length) return;
+    if (e.ctrlKey && e.key.startsWith("Arrow")) return; // playback keys
     let ci = S.cursor != null ? indexOfId(S.cursor) : -1;
     const page = Math.max(1, Math.floor(sc.clientHeight / ROW) - 1);
     let ni = null;
@@ -1393,7 +1651,12 @@ function bindTable(sc){
     else if (e.key === "Home") ni = 0;
     else if (e.key === "End") ni = list.length-1;
     else if (e.key === "Enter"){ e.preventDefault(); openInfo(); return; }
-    else if ((e.key === "Delete" || e.key === "Backspace") && S.sel.size){ e.preventDefault(); confirmRemove(); return; }
+    else if ((e.key === "Delete" || e.key === "Backspace") && S.sel.size){
+      e.preventDefault();
+      const pl = curPlaylist();
+      if (pl && pl.editable && !e.shiftKey) removeFromPlaylist(); else confirmRemove();
+      return;
+    }
     else if (e.ctrlKey && (e.key === "a" || e.key === "A")){ e.preventDefault(); list.forEach(t => S.sel.add(t.id)); renderRows(true); updateButtons(); return; }
     if (ni === null) return;
     e.preventDefault();
@@ -1407,13 +1670,15 @@ function bindTable(sc){
 /* ------------------------------------------------------------------ drag songs out to Explorer */
 let dragStart = null, pendingCollapse = null;
 addEventListener("mousemove", e => {
+  if (LD.on){ if (!(e.buttons & 1)){ endLocalDrag(); return; } moveLocalDrag(e); return; }
   if (!dragStart) return;
   if (!(e.buttons & 1)){ dragStart = null; return; }
   if (Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) < 6) return;
   dragStart = null; pendingCollapse = null;
-  startDragOut();
+  beginLocalDrag(e);
 });
 addEventListener("mouseup", () => {
+  if (LD.on){ dropLocalDrag(); return; }
   dragStart = null;
   if (pendingCollapse !== null){ const id = pendingCollapse; pendingCollapse = null; S.sel.clear(); S.sel.add(id); S.anchor = id; renderRows(true); updateButtons(); }
 });
@@ -1427,6 +1692,271 @@ async function startDragOut(){
   catch(e){ alertSheet("Couldn’t drag the songs", e.message); }
   finally { setTimeout(() => { S.dragOut = false; }, 300); S.flash = null; renderLCD(); }
 }
+
+/* ------------------------------------------------------------------ playback */
+// Songs play in the app from a small loopback web server in the backend
+// (see internal/app/player.go). Formats the WebView can't play (AIFF, Apple
+// Lossless…) are decoded to WAV by the backend with the user's encoders.
+const P = {queue: [], idx: -1, cur: null, el: null, media: null, vol: 0.8, muted: false, decoded: false, seeking: false};
+const NEEDS_DECODE = /aiff|lossless|wma|windows media/i;
+async function mediaBase(){
+  if (!P.media) P.media = await api("mediaInfo");
+  return P.media;
+}
+function trackEntry(t){ return {id: t.id, title: t.title, artist: t.artist, album: t.album, video: !!t.video, kind: t.kind || "", lengthMs: t.lengthMs || 0}; }
+async function entryURL(q, decode){
+  const m = await mediaBase();
+  const u = q.id ? `${m.base}media/track/${q.id}?t=${m.token}` : `${m.base}media/file?path=${encodeURIComponent(q.path)}&t=${m.token}`;
+  return u + (decode ? "&decode=1" : "");
+}
+// plays list[i] and queues the rest of the list after it
+function playList(list, i){
+  if (!list.length) return;
+  P.queue = list.map(t => trackEntry(t));
+  startAt(Math.max(0, Math.min(i, P.queue.length - 1)));
+}
+function playEntries(entries, i){ if (!entries.length) return; P.queue = entries; startAt(i || 0); }
+function mediaEl(q){ return q.video ? $("#pVideo") : $("#pAudio"); }
+async function startAt(i){
+  const q = P.queue[i]; if (!q) { stopPlayback(); return; }
+  const el = mediaEl(q), other = q.video ? $("#pAudio") : $("#pVideo");
+  other.pause(); other.removeAttribute("src"); other.load();
+  P.idx = i; P.cur = q; P.el = el; S.flash = null; P.decoded = !q.video && NEEDS_DECODE.test(q.kind || "");
+  if (q.video){ $("#vwin").classList.remove("hidden"); $("#vwinTitle").textContent = q.title || "Video"; }
+  else $("#vwin").classList.add("hidden");
+  applyVolume();
+  try {
+    el.src = await entryURL(q, P.decoded);
+    if (P.cur !== q) return;
+    if (P.decoded) flash("Preparing to play…", q.title || "");
+    await el.play();
+  } catch(e){ if (e && e.name === "AbortError") return; if (e && e.name !== "NotSupportedError") console.warn(e); }
+  if (P.decoded && S.flash && S.flash.a === "Preparing to play…"){ S.flash = null; }
+  renderNowPlaying();
+}
+async function playbackFailed(){
+  const q = P.cur; if (!q) return;
+  if (!P.decoded && !q.video){
+    // the WebView can't open this format: ask the backend to decode it
+    P.decoded = true;
+    flash("Preparing to play…", q.title || "");
+    P.el.src = await entryURL(q, true);
+    P.el.play().catch(() => {});
+    return;
+  }
+  let msg = q.video ? "This video’s format can’t be played in Classic iPod Manager, but it may still play on the iPod." : "The song couldn’t be played.";
+  try {
+    const r = await fetch(await entryURL(q, P.decoded));
+    if (!r.ok){ const t = (await r.text()).trim(); if (t) msg = t; }
+  } catch(e){}
+  stopPlayback();
+  alertSheet(`Can’t play “${q.title || "this item"}”`, msg);
+}
+function stopPlayback(){
+  for (const el of [$("#pAudio"), $("#pVideo")]){ el.pause(); el.removeAttribute("src"); el.load(); }
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  $("#vwin").classList.add("hidden");
+  P.cur = null; P.el = null; P.idx = -1; P.queue = [];
+  if (S.flash && S.flash.a === "Preparing to play…") S.flash = null;
+  renderNowPlaying();
+}
+function togglePlay(){
+  if (!P.cur){
+    // nothing playing: play the selection, or the list from the top
+    if (S.view === "fm"){ fmPlaySelected(); return; }
+    if (!S.lib || !S.list.length) return;
+    const i = S.cursor != null && S.sel.has(S.cursor) ? indexOfId(S.cursor) : S.sel.size ? S.list.findIndex(t => S.sel.has(t.id)) : 0;
+    playList(S.list, Math.max(0, i));
+    return;
+  }
+  if (P.el.paused) P.el.play().catch(() => {}); else P.el.pause();
+}
+function nextTrack(){ if (!P.cur) return; if (P.idx + 1 < P.queue.length) startAt(P.idx + 1); else stopPlayback(); }
+function prevTrack(){
+  if (!P.cur) return;
+  if (P.el.currentTime > 3 || P.idx === 0){ P.el.currentTime = 0; return; }
+  startAt(P.idx - 1);
+}
+function setVolume(v){
+  P.vol = Math.max(0, Math.min(1, +v || 0)); P.muted = P.vol === 0 ? P.muted : false;
+  store.set("volume", P.vol); store.set("muted", P.muted);
+  applyVolume(); paintTransport();
+}
+function applyVolume(){ for (const el of [$("#pAudio"), $("#pVideo")]){ el.volume = P.vol; el.muted = P.muted; } }
+const fmtClock = sec => { sec = Math.max(0, Math.floor(sec || 0)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = String(sec % 60).padStart(2, "0"); return h ? `${h}:${String(m).padStart(2, "0")}:${s2}` : `${m}:${s2}`; };
+function playDuration(){
+  const el = P.el; if (!el) return 0;
+  return isFinite(el.duration) && el.duration > 0 ? el.duration : (P.cur && P.cur.lengthMs ? P.cur.lengthMs / 1000 : 0);
+}
+function paintProgress(){
+  const fill = $("#npFill"); if (!fill || !P.el) return;
+  const d = playDuration(), t = P.seekTo != null ? P.seekTo : P.el.currentTime || 0;
+  const f = d ? Math.min(1, t / d) : 0;
+  fill.style.width = f * 100 + "%"; $("#npKnob").style.left = f * 100 + "%";
+  let buf = 0; try { const b = P.el.buffered; if (b.length) buf = b.end(b.length - 1); } catch(e){}
+  $("#npBuf").style.width = (d ? Math.min(1, buf / d) : 0) * 100 + "%";
+  $("#npPos").textContent = fmtClock(t);
+  $("#npLeft").textContent = d ? "-" + fmtClock(d - t) : "";
+  $("#npSeek").setAttribute("aria-valuetext", fmtClock(t));
+}
+function bindSeek(bar){
+  const at = e => { const r = bar.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * playDuration(); };
+  bar.onmousedown = e => {
+    if (!P.el || !playDuration()) return;
+    e.preventDefault();
+    P.seekTo = at(e); paintProgress();
+    const mv = ev => { P.seekTo = at(ev); paintProgress(); };
+    const up = ev => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); if (P.el) P.el.currentTime = at(ev); P.seekTo = null; };
+    addEventListener("mousemove", mv); addEventListener("mouseup", up);
+  };
+  bar.onkeydown = e => {
+    if (!P.el) return;
+    if (e.key === "ArrowRight"){ e.preventDefault(); e.stopPropagation(); P.el.currentTime = Math.min(playDuration(), P.el.currentTime + 5); }
+    if (e.key === "ArrowLeft"){ e.preventDefault(); e.stopPropagation(); P.el.currentTime = Math.max(0, P.el.currentTime - 5); }
+  };
+}
+function paintTransport(){
+  const playing = !!(P.el && !P.el.paused);
+  const can = !!P.cur || (S.view === "fm" ? FM.items.length > 0 : !!(S.lib && S.list && S.list.length));
+  $("#pPlay").disabled = !can;
+  $("#pPrev").disabled = $("#pNext").disabled = !P.cur;
+  $("#pPlayIcon").setAttribute("href", playing ? "#i-pause" : "#i-play");
+  $("#pPlay").title = playing ? "Pause (Space)" : "Play (Space)";
+  $("#pPlay").setAttribute("aria-label", playing ? "Pause" : "Play");
+  const muted = P.muted || P.vol === 0;
+  $("#pVolIcon").setAttribute("href", muted ? "#i-mute" : "#i-vol");
+  $("#pMute").title = muted ? "Unmute" : "Mute";
+  const vs = $("#pVol"); if (document.activeElement !== vs) vs.value = P.muted ? 0 : P.vol;
+}
+function renderNowPlaying(){ paintTransport(); renderLCD(); renderRows(true); }
+(function bindPlayer(){
+  P.vol = +store.get("volume", 0.8); if (!(P.vol >= 0 && P.vol <= 1)) P.vol = 0.8;
+  P.muted = !!store.get("muted", false);
+  for (const el of [$("#pAudio"), $("#pVideo")]){
+    el.addEventListener("timeupdate", () => { if (el === P.el) paintProgress(); });
+    el.addEventListener("progress", () => { if (el === P.el) paintProgress(); });
+    el.addEventListener("loadedmetadata", () => { if (el === P.el) paintProgress(); });
+    el.addEventListener("play", () => { if (el === P.el) paintTransport(); });
+    el.addEventListener("playing", () => { if (el === P.el && S.flash && S.flash.a === "Preparing to play…"){ S.flash = null; renderLCD(); } });
+    el.addEventListener("pause", () => { if (el === P.el) paintTransport(); });
+    el.addEventListener("ended", () => { if (el === P.el) nextTrack(); });
+    el.addEventListener("error", () => { if (el === P.el && el.getAttribute("src")) playbackFailed(); });
+  }
+  $("#pPlay").onclick = togglePlay; $("#pNext").onclick = nextTrack; $("#pPrev").onclick = prevTrack;
+  $("#pVol").oninput = e => { P.muted = false; setVolume(e.target.value); };
+  $("#pMute").onclick = () => { if (P.vol === 0){ P.vol = 0.5; P.muted = false; } else P.muted = !P.muted; store.set("muted", P.muted); store.set("volume", P.vol); applyVolume(); paintTransport(); };
+  $("#transport").addEventListener("wheel", e => { if (e.ctrlKey) return; e.preventDefault(); setVolume(P.vol + (e.deltaY < 0 ? .05 : -.05)); }, {passive:false});
+  $("#vwinClose").onclick = stopPlayback;
+  $("#vwinFull").onclick = () => { const v = $("#pVideo"); (v.requestFullscreen ? v.requestFullscreen() : Promise.reject()).catch(() => {}); };
+  $("#pVideo").addEventListener("dblclick", () => $("#vwinFull").click());
+  $("#pVideo").addEventListener("click", togglePlay);
+  // the video window can be moved by its title bar
+  $("#vwinBar").addEventListener("mousedown", e => {
+    if (e.target.closest("button")) return;
+    const w = $("#vwin"), r = w.getBoundingClientRect(), z = cssZoom, dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const mv = ev => {
+      const x = Math.max(0, Math.min(innerWidth - r.width, ev.clientX - dx)), y = Math.max(0, Math.min(innerHeight - 30, ev.clientY - dy));
+      Object.assign(w.style, {left: x / z + "px", top: y / z + "px", right: "auto", bottom: "auto"});
+    };
+    const up = () => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); };
+    addEventListener("mousemove", mv); addEventListener("mouseup", up);
+  });
+  applyVolume();
+})();
+function fmEntry(it){
+  const t = (it.info && it.info.tags) || {};
+  const base = {title: fmTitle(it), artist: fmVal(it, "artist"), album: fmVal(it, "album"), lengthMs: (it.info && it.info.lengthMs) || 0,
+    kind: it.info ? it.info.label : "", video: false};
+  if (it.source === "ipod" && it.trackId) return Object.assign(base, {id: it.trackId});
+  return Object.assign(base, {path: it.path});
+}
+function fmPlaySelected(){
+  const list = FM.list.length ? FM.list : FM.items;
+  if (!list.length) return;
+  let i = FM.cursor ? list.findIndex(x => x.key === FM.cursor) : list.findIndex(x => FM.sel.has(x.key));
+  playEntries(list.map(fmEntry), Math.max(0, i));
+}
+
+/* ------------------------------------------------------------------ dragging songs inside the window */
+// Dragging selected songs onto a playlist adds them; onto the Playlists
+// heading makes a new playlist; onto Movies / TV Shows / Music Videos files
+// videos there; within a playlist (in playlist order) reorders it. Moving
+// the pointer out of the window hands the drag to Windows, to copy the songs
+// to Explorer.
+const LD = {on: false, ids: [], ghost: null, target: null, line: null, to: -1};
+function beginLocalDrag(e){
+  if (!S.lib || !S.sel.size) return;
+  LD.on = true;
+  LD.ids = S.list.filter(t => S.sel.has(t.id)).map(t => t.id);
+  const first = S.byId.get(LD.ids[0]) || {};
+  const g = document.createElement("div"); g.className = "dragghost";
+  const word = LD.ids.every(id => (S.byId.get(id) || {}).video) ? "video" : "song";
+  g.innerHTML = `<b>${esc(LD.ids.length === 1 ? first.title || "1 " + word : plural(LD.ids.length, word))}</b><span>${S.lib.readOnly ? "Drag out of the window to copy" : "Drop on a playlist, or out of the window to copy"}</span>`;
+  document.body.appendChild(g); LD.ghost = g;
+  document.body.classList.add("ldragging");
+  moveLocalDrag(e);
+}
+function clearDropMarks(){
+  document.querySelectorAll(".droptarget").forEach(x => x.classList.remove("droptarget"));
+  if (LD.line){ LD.line.remove(); LD.line = null; }
+  LD.target = null; LD.to = -1;
+}
+function endLocalDrag(){
+  clearDropMarks();
+  if (LD.ghost) LD.ghost.remove();
+  LD.ghost = null; LD.on = false;
+  document.body.classList.remove("ldragging");
+}
+function moveLocalDrag(e){
+  const z = cssZoom;
+  LD.ghost.style.left = (e.clientX + 14) / z + "px"; LD.ghost.style.top = (e.clientY + 12) / z + "px";
+  // near the window's edge: hand over to Windows for a drag to Explorer
+  const edge = 4;
+  if (e.clientX <= edge || e.clientY <= edge || e.clientX >= innerWidth - edge || e.clientY >= innerHeight - edge){
+    endLocalDrag(); startDragOut(); return;
+  }
+  clearDropMarks();
+  if (S.lib.readOnly || S.busy) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (!el) return;
+  const pl = el.closest(".sitem[data-pl]");
+  if (pl){
+    if (pl.dataset.editable && "pl:" + pl.dataset.pl !== S.view){ pl.classList.add("droptarget"); LD.target = {pl: pl.dataset.pl}; }
+    return;
+  }
+  const np = el.closest(".plhead, [data-newpl]");
+  if (np){ np.classList.add("droptarget"); LD.target = {newPl: true}; return; }
+  const vk = el.closest(".sitem[data-vkind]");
+  if (vk){
+    if (LD.ids.every(id => (S.byId.get(id) || {}).video)){ vk.classList.add("droptarget"); LD.target = {vkind: +vk.dataset.vkind}; }
+    return;
+  }
+  const sc = el.closest("#tscroll");
+  if (sc && canReorder()){
+    const r = sc.getBoundingClientRect();
+    const y = (e.clientY - r.top) / z + sc.scrollTop;
+    const to = Math.max(0, Math.min(S.list.length, Math.round(y / ROW)));
+    LD.to = to; LD.target = {reorder: true};
+    const line = document.createElement("div"); line.className = "dropline"; line.style.top = to * ROW + "px";
+    const sp = $("#tspacer") || sc.firstElementChild;
+    (sp || sc).appendChild(line); LD.line = line;
+  }
+}
+function dropLocalDrag(){
+  const tg = LD.target, ids = LD.ids, to = LD.to;
+  endLocalDrag();
+  if (!tg) return;
+  if (tg.pl) addToPlaylist(tg.pl, ids);
+  else if (tg.newPl) newPlaylist(ids, "untitled playlist");
+  else if (tg.vkind) setVideoKind(ids, tg.vkind);
+  else if (tg.reorder){
+    // positions are in playlist order; `to` is the row the songs go before
+    const p = curPlaylist(); if (!p) return;
+    const pos = p.trackIds.length === S.list.length ? to : (S.list[to] ? p.trackIds.indexOf(S.list[to].id) : p.trackIds.length);
+    movePlaylistItems(pos);
+  }
+}
+addEventListener("keydown", e => { if (LD.on && e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); endLocalDrag(); } }, true);
 
 /* ------------------------------------------------------------------ drag songs in from Explorer */
 const BAD_TYPES = /^(audio\/(flac|x-flac|ogg|opus|x-ms-wma|ape|x-ape)|image\/|text\/|application\/(pdf|zip|x-zip))/;
@@ -1493,7 +2023,7 @@ function handleDropCheck(d){
   S.flash = null; renderLCD();
   if (d.reason){ alertSheet("Can’t copy to the iPod", d.reason); return; }
   const rej = d.rejected || [], ok = d.accepted || [];
-  const go0 = () => api("addPaths", ok).catch(e => alertSheet("Couldn’t add the songs", e.message));
+  const go0 = () => api("addMedia", ok, "", viewVideoType()).catch(e => alertSheet("Couldn’t add the songs", e.message));
   // videos the iPod can't play are converted first: say so before starting
   const go = !d.convert ? go0 : () => sheet(`<div class="sheet-h">Convert ${plural(d.convert, "video")} for the iPod?</div><div class="sheet-b">
       <p>${d.convert === 1 ? "This video isn’t" : "These videos aren’t"} in a format the iPod can play, so ${d.convert === 1 ? "it" : "they"} will be converted with FFmpeg first (640×480 H.264 with AAC sound). This can take a while for long videos.</p>
@@ -1515,21 +2045,26 @@ function handleDropCheck(d){
 
 /* ------------------------------------------------------------------ context menu */
 function showCtx(x, y){
-  closeCtx();
   const ro = S.lib.readOnly || S.busy, n = S.sel.size;
-  const m = document.createElement("div"); m.className = "ctx"; m.id = "ctx";
+  const ids = S.list.filter(t => S.sel.has(t.id)).map(t => t.id);
+  const allVideo = ids.every(id => (S.byId.get(id) || {}).video);
+  const pl = curPlaylist();
   const items = [];
-  if (!ro) items.push(["Get Info", openInfo]);
-  if (n === 1) items.push(["Show in Explorer", () => api("reveal", selectedIds()[0]).catch(e => alertSheet("Couldn’t show the file", e.message))]);
-  items.push(["Copy to Computer…", exportSel]);
-  if (!ro) items.push([n > 1 ? `Edit or Convert ${n} Songs in Format Manager` : "Edit or Convert in Format Manager", () => fmAddIPod(selectedIds())]);
-  if (!ro){ items.push(null); items.push([n > 1 ? `Remove ${n} Songs from iPod…` : "Remove from iPod…", confirmRemove]); }
-  m.innerHTML = items.map((it, i) => it ? `<div data-i="${i}">${esc(it[0])}</div>` : "<hr>").join("");
-  document.body.appendChild(m);
-  const r = m.getBoundingClientRect();
-  const z = cssZoom, vw = innerWidth / z, vh = innerHeight / z;
-  m.style.left = Math.min(x / z, vw - r.width / z - 4) + "px"; m.style.top = Math.min(y / z, vh - r.height / z - 4) + "px";
-  m.onclick = e => { const d = e.target.closest("[data-i]"); if (!d) return; closeCtx(); items[+d.dataset.i][1](); };
+  items.push({label: "Play", fn: () => { const i = S.list.findIndex(t => t.id === (S.sel.has(S.cursor) ? S.cursor : ids[0])); playList(S.list, Math.max(0, i)); }});
+  if (!ro) items.push({label: "Get Info", fn: openInfo});
+  if (n === 1) items.push({label: "Show in Explorer", fn: () => api("reveal", ids[0]).catch(e => alertSheet("Couldn’t show the file", e.message))});
+  items.push({label: "Copy to Computer…", fn: exportSel});
+  if (!ro){
+    const pls = S.lib.playlists.filter(p => p.editable);
+    items.push({label: "Add to Playlist", sub: [{label: "New Playlist from Selection", fn: () => newPlaylist(ids, "untitled playlist")},
+      ...(pls.length ? [null] : []), ...pls.map(p => ({label: p.name, fn: () => addToPlaylist(p.id, ids)}))]});
+    if (allVideo) items.push({label: "Move to", sub: VIDEO_KINDS.map(([mt, label]) => ({label, fn: () => setVideoKind(ids, mt)}))});
+    items.push({label: n > 1 ? `Edit or Convert ${n} Songs in Format Manager` : "Edit or Convert in Format Manager", fn: () => fmAddIPod(ids)});
+    items.push(null);
+    if (pl && pl.editable) items.push({label: n > 1 ? `Remove ${n} Songs from Playlist` : "Remove from Playlist", fn: removeFromPlaylist});
+    items.push({label: n > 1 ? `Remove ${n} Songs from iPod…` : "Remove from iPod…", fn: confirmRemove});
+  }
+  popMenu(x, y, items);
 }
 function closeCtx(){ const m = $("#ctx"); if (m) m.remove(); }
 addEventListener("mousedown", e => { if (!e.target.closest("#ctx")) closeCtx(); }, true);
@@ -1561,8 +2096,8 @@ function alertSheet(title, msg){
 
 /* ------------------------------------------------------------------ actions */
 async function addSongs(){ if (!canWrite()) return; try { await api("addFiles"); } catch(e){ alertSheet("Couldn’t add songs", e.message); } }
-async function addFolder(){ if (!canWrite()) return; try { await api("addFolderOf", S.view === "videos" ? "video" : "music"); } catch(e){ alertSheet("Couldn’t add the folder", e.message); } }
-async function addVideos(){ if (!canWrite()) return; try { await api("addVideos"); } catch(e){ alertSheet("Couldn’t add videos", e.message); } }
+async function addFolder(){ if (!canWrite()) return; try { await api("addFolderOf", isVideoView() ? "video" : "music", viewVideoType()); } catch(e){ alertSheet("Couldn’t add the folder", e.message); } }
+async function addVideos(){ if (!canWrite()) return; try { await api("addVideos", viewVideoType()); } catch(e){ alertSheet("Couldn’t add videos", e.message); } }
 async function exportSel(){ const ids = selectedIds(); if (!ids.length) return; try { await api("export", ids); } catch(e){ alertSheet("Couldn’t copy the songs", e.message); } }
 function canWrite(){ return S.lib && !S.lib.readOnly && !S.busy; }
 async function setRating(ids, r){ try { await api("update", ids, {rating:r}, false); } catch(e){ alertSheet("Couldn’t change the rating", e.message); } }
@@ -1940,6 +2475,7 @@ function fmBindList(sc){
     }
     FM.cursor = k;
     fmSelChanged();
+    if (e.button === 0 && e.detail === 2 && !e.ctrlKey && !e.shiftKey && idx >= 0) playEntries(FM.list.map(fmEntry), idx);
   });
   sc.addEventListener("keydown", e => {
     if (e.ctrlKey && e.key.toLowerCase() === "a"){ e.preventDefault(); FM.sel = new Set(FM.list.map(i => i.key)); fmSelChanged(); return; }
@@ -2237,7 +2773,9 @@ function jobSummary(r){
 async function onEvent(e){
   if (e.type === "progress"){
     const started = !S.busy;
-    S.busy = {job:e.job, done:e.done||0, total:e.total||0, label:e.label}; renderLCD(); updateButtons();
+    S.busy = {job:e.job, done:e.done||0, total:e.total||0, label:e.label,
+      bytesDone:e.bytesDone||0, bytesTotal:e.bytesTotal||0, speed:e.speed||0, direction:e.direction||""};
+    renderLCD(); if (started) updateButtons();
     if (started && S.view === "fm") renderMain();
     return;
   }
@@ -2264,7 +2802,7 @@ async function onEvent(e){
   }
   if (e.type === "drop"){ handleDropCheck(e.drop || {}); return; }
   if (e.type === "devices"){ S.devices = e.devices || []; if (!S.lib && S.devices.length === 1 && S.view !== "setup") openDevice(S.devices[0].root); renderAll(); return; }
-  if (e.type === "deviceGone"){ setLib(null); S.view = "music"; renderAll(); flash("iPod disconnected", ""); }
+  if (e.type === "deviceGone"){ if (P.cur && P.cur.id) stopPlayback(); setLib(null); S.view = "music"; renderAll(); flash("iPod disconnected", ""); }
 }
 window.__podEvent = e => { onEvent(e).catch(err => console.error(err)); };
 
@@ -2274,13 +2812,19 @@ function setLib(lib){
   S.lib = lib; S.byId = new Map(); S.listDirty = true;
   if (lib) for (const t of lib.tracks) S.byId.set(t.id, t);
   for (const id of [...S.sel]) if (!S.byId.has(id)) S.sel.delete(id);
+  if (P.cur && P.cur.id){
+    const t = S.byId.get(P.cur.id);
+    if (!t) stopPlayback(); else Object.assign(P.cur, {title: t.title, artist: t.artist, album: t.album});
+    P.queue = P.queue.filter(q => !q.id || S.byId.has(q.id));
+    P.idx = P.queue.indexOf(P.cur);
+  }
   const root = lib ? lib.device.root : null;
   if (root !== battRoot){ battRoot = root; S.batt = null; if (root) refreshBattery(); else hideBattPop(); }
   applyTheme();
 }
 async function reload(){
   try { setLib(await api("library")); } catch(e){ setLib(null); }
-  if (S.view.startsWith("pl:") && !(S.lib && S.lib.playlists[+S.view.slice(3)])) S.view = "music";
+  if (isPlView() && !curPlaylist()) S.view = "music";
   renderAll();
 }
 async function openDevice(root){
@@ -2302,7 +2846,7 @@ function renderStats(){
     const list = S.listDirty ? buildList() : S.list;
     const ms = list.reduce((s, t) => s + (t.lengthMs||0), 0), b = list.reduce((s, t) => s + (t.size||0), 0);
     const selN = S.sel.size;
-    const word = S.view === "videos" ? "video" : S.view.startsWith("pl:") ? "item" : "song";
+    const word = isVideoView() ? "video" : S.view.startsWith("pl:") ? "item" : "song";
     st.textContent = `${plural(list.length, word)}, ${fmtTotal(ms)}, ${fmtBytes(b)}` + (selN > 1 ? ` — ${selN.toLocaleString()} selected` : "");
   }
   const c = capParts(S.lib.device, S.lib.musicBytes, S.lib.videoBytes);
@@ -2317,7 +2861,7 @@ function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); 
 /* ------------------------------------------------------------------ toolbar & keys */
 $("#bOptions").onclick = () => openOptions();
 $("#bFormats").onclick = () => { if (S.view !== "fm") setView("fm"); };
-$("#bAdd").onclick = () => S.view === "videos" ? addVideos() : addSongs(); $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
+$("#bAdd").onclick = () => isVideoView() ? addVideos() : addSongs(); $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
 $("#bBrowse").onclick = () => { if (S.view === "fm"){ setView("music"); if (S.browser) return; } S.browser = !S.browser; store.set("browser", S.browser); S.bsel = {genre:null, artist:null, album:null}; S.listDirty = true; if (S.view === "summary") S.view = "music"; renderAll(); };
 let searchT;
 $("#search").addEventListener("input", e => {
@@ -2332,6 +2876,7 @@ $("#searchClear").onclick = e => { e.preventDefault(); $("#search").value = ""; 
 addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   // block browser reload / navigation shortcuts, which would blank the app
+  if (e.ctrlKey && !e.shiftKey && k === "n" && !sheetStack.length){ e.preventDefault(); newPlaylist(); return; }
   if (k === "f5" || (e.ctrlKey && ["r","p","n","t","w","u","g","j","h","l"].includes(k)) || (e.altKey && (k === "arrowleft" || k === "arrowright")) || k === "browserback"){ e.preventDefault(); return; }
   if (e.ctrlKey && (k === "=" || k === "+" || e.code === "NumpadAdd")){ e.preventDefault(); stepScale(1); return; }
   if (e.ctrlKey && (k === "-" || e.code === "NumpadSubtract")){ e.preventDefault(); stepScale(-1); return; }
@@ -2339,10 +2884,16 @@ addEventListener("keydown", e => {
   if (sheetStack.length) return;
   if (e.ctrlKey && k === ","){ e.preventDefault(); openOptions(); }
   if (e.ctrlKey && k === "f"){ e.preventDefault(); $("#search").focus(); $("#search").select(); }
-  if (e.ctrlKey && k === "o"){ e.preventDefault(); S.view === "videos" ? addVideos() : addSongs(); }
+  if (e.ctrlKey && k === "o"){ e.preventDefault(); isVideoView() ? addVideos() : addSongs(); }
   if (e.ctrlKey && k === "i"){ e.preventDefault(); if (S.view !== "fm") openInfo(); }
   if (e.ctrlKey && k === "m"){ e.preventDefault(); if (S.view !== "fm") setView("fm"); }
   if (e.ctrlKey && k === "b"){ e.preventDefault(); $("#bBrowse").click(); }
+  const typing = e.target.closest && e.target.closest("input,textarea,select,[contenteditable]");
+  if (!typing && k === " " && !e.ctrlKey && !e.altKey){ e.preventDefault(); togglePlay(); }
+  if (!typing && e.ctrlKey && k === "arrowright"){ e.preventDefault(); nextTrack(); }
+  if (!typing && e.ctrlKey && k === "arrowleft"){ e.preventDefault(); prevTrack(); }
+  if (!typing && e.ctrlKey && k === "arrowup"){ e.preventDefault(); setVolume(P.vol + .1); }
+  if (!typing && e.ctrlKey && k === "arrowdown"){ e.preventDefault(); setVolume(P.vol - .1); }
 });
 addEventListener("contextmenu", e => { if (!e.target.closest("input,textarea")) e.preventDefault(); });
 addEventListener("resize", () => renderRows(true));

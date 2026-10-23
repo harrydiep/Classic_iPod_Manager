@@ -218,6 +218,7 @@ func (a *App) FMInspect(paths []string) ([]FMItem, error) {
 			add(f)
 		}
 	}
+	a.allowPlay(files...)
 	items := make([]FMItem, len(files))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 8)
@@ -724,7 +725,8 @@ func (a *App) fmConvert(ctx context.Context, d *ipod.Device, req FMRequest, f co
 	if err := os.MkdirAll(work, 0o755); err != nil {
 		return fmt.Errorf("can't use the main folder: %w", err)
 	}
-	defer os.Remove(work) // only if empty
+	defer os.Remove(work)               // only if empty
+	a.startTransfer("convert", "to", 0) // backups come from the iPod, new files go to it
 	convertedBase := filepath.Join(a.mainDir, ConvertedFolder)
 	originalsBase := filepath.Join(a.mainDir, OriginalsFolder)
 	var alloc pathAllocator
@@ -826,7 +828,7 @@ func (a *App) fmConvert(ctx context.Context, d *ipod.Device, req FMRequest, f co
 				if t.backup != "" {
 					if err := os.MkdirAll(filepath.Dir(t.backup), 0o755); err != nil {
 						t.err = fmt.Errorf("couldn't back up the original: %w", err)
-					} else if err := copyFile(t.job.Src, t.backup); err != nil {
+					} else if err := copyFileCounted(t.job.Src, t.backup, a.currentTransfer()); err != nil {
 						os.Remove(t.backup)
 						t.err = fmt.Errorf("couldn't back up the original: %w", err)
 					}
@@ -930,7 +932,7 @@ func (a *App) fmConvert(ctx context.Context, d *ipod.Device, req FMRequest, f co
 	}
 	if len(toAdd) > 0 && d != nil && !a.cancel.Load() {
 		sub := &JobResult{Errors: []JobError{}, Notes: []string{}}
-		if err := a.addFiles(ctx, d, "convert", toAdd, sub); err != nil {
+		if err := a.addFiles(ctx, d, "convert", toAdd, 0, sub); err != nil {
 			return err
 		}
 		if sub.OK > 0 {
@@ -972,7 +974,7 @@ func (a *App) replaceOnIPod(d *ipod.Device, t *fmTask) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := copyFile(t.job.Out, abs); err != nil {
+	if err := copyFileCounted(t.job.Out, abs, a.currentTransfer()); err != nil {
 		os.Remove(abs)
 		return "", err
 	}

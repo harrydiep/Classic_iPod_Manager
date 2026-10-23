@@ -514,6 +514,62 @@ func (p *Playlist) ID() uint64 {
 	return 0
 }
 
+// PlaylistByID finds a playlist (nil if none).
+func (db *DB) PlaylistByID(id uint64) *Playlist {
+	for _, p := range db.Playlists {
+		if p.ID() == id {
+			return p
+		}
+	}
+	return nil
+}
+
+// NewPlaylist adds an empty, ordinary playlist at the end.
+func (db *DB) NewPlaylist(name string) *Playlist {
+	h := make([]byte, 0x6C)
+	copy(h, "mhyp")
+	le.PutUint32(h[4:], 0x6C)
+	le.PutUint32(h[0x18:], MacTime(time.Now()))
+	for {
+		le.PutUint64(h[0x1C:], randU64())
+		if db.PlaylistByID(le.Uint64(h[0x1C:])) == nil {
+			break
+		}
+	}
+	le.PutUint16(h[0x28:], 1) // one string mhod (the name)
+	le.PutUint32(h[0x2C:], 1) // sort order: manual
+	p := &Playlist{header: h, Name: name}
+	db.Playlists = append(db.Playlists, p)
+	return p
+}
+
+// DeletePlaylist removes a playlist (never the master playlist). The songs
+// stay on the iPod.
+func (db *DB) DeletePlaylist(p *Playlist) bool {
+	if p == nil || p.IsMaster() {
+		return false
+	}
+	for i, q := range db.Playlists {
+		if q == p {
+			db.Playlists = append(db.Playlists[:i], db.Playlists[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// Editable reports whether songs can be added to, removed from and
+// reordered in the playlist (not the master, smart or podcast playlists).
+func (p *Playlist) Editable() bool { return !p.IsMaster() && !p.IsSmart() && !p.IsPodcast() }
+
+// Add appends tracks to the playlist.
+func (p *Playlist) Add(ids ...uint32) {
+	now := MacTime(time.Now())
+	for _, id := range ids {
+		p.Items = append(p.Items, Item{TrackID: id, Timestamp: now})
+	}
+}
+
 // Master returns the master playlist.
 func (db *DB) Master() *Playlist {
 	if len(db.Playlists) == 0 {

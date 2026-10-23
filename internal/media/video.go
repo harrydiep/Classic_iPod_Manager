@@ -329,3 +329,17 @@ func mp4aIsAAC(stsd []byte) bool {
 	ot := d[p]
 	return ot == 0x40 || (ot >= 0x66 && ot <= 0x68)
 }
+
+// MP4MediaKind returns the iTunes media kind stored in an MPEG-4 file's
+// "stik" tag (6 music video, 9 movie, 10 TV show), or 0.
+func MP4MediaKind(path string) int {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+	if d, ok := mp4ItemData(f, "stik"); ok && len(d) >= 1 {
+		return int(d[0])
+	}
+	return 0
+}

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,7 +24,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.6.0"
+const Version = "1.7.0"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -63,6 +64,12 @@ type Event struct {
 	Result  *JobResult   `json:"result,omitempty"`
 	Devices []DeviceInfo `json:"devices,omitempty"`
 	Drop    *DropCheck   `json:"drop,omitempty"`
+	// file transfers: bytes copied so far, expected total (0 = unknown),
+	// bytes per second over the last few seconds, "to" or "from" the iPod
+	BytesDone  int64   `json:"bytesDone,omitempty"`
+	BytesTotal int64   `json:"bytesTotal,omitempty"`
+	Speed      float64 `json:"speed,omitempty"`
+	Direction  string  `json:"direction,omitempty"`
 }
 
 // JobResult summarises a finished job.
@@ -133,6 +140,8 @@ type TrackView struct {
 
 // PlaylistView is a playlist as shown in the UI.
 type PlaylistView struct {
+	ID       string   `json:"id"` // decimal; JavaScript numbers can't hold it
+	Editable bool     `json:"editable"`
 	Name     string   `json:"name"`
 	Smart    bool     `json:"smart"`
 	Podcast  bool     `json:"podcast"`
@@ -165,6 +174,8 @@ type App struct {
 	batt      batteryCache
 	mainDir   string
 	stopFn    context.CancelFunc // cancels the running job's external programs
+	xfer      *transfer          // byte counting for the running job
+	play      player
 }
 
 // New creates the app. emit is called (from any goroutine) to push events.
@@ -175,44 +186,51 @@ func New(p Platform, backupDir string, emit func(Event)) *App {
 // Methods returns the operations callable from the UI, keyed by name.
 func (a *App) Methods() map[string]interface{} {
 	return map[string]interface{}{
-		"version":        func() string { return Version },
-		"devices":        a.Devices,
-		"open":           a.Open,
-		"library":        a.Library,
-		"initialize":     a.Initialize,
-		"addFiles":       a.AddFiles,
-		"addFolder":      a.AddFolder,
-		"addPaths":       a.AddPaths,
-		"remove":         a.Remove,
-		"update":         a.Update,
-		"export":         a.Export,
-		"cancel":         a.Cancel,
-		"eject":          a.Eject,
-		"rename":         a.Rename,
-		"reveal":         a.Reveal,
-		"close":          a.Close,
-		"prefs":          a.Prefs,
-		"artwork":        a.Artwork,
-		"dragOut":        a.DragOut,
-		"battery":        a.Battery,
-		"encoders":       a.Encoders,
-		"setEncoder":     a.SetEncoder,
-		"openFolder":     a.OpenFolder,
-		"fmInspect":      a.FMInspect,
-		"fmFromIPod":     a.FMFromIPod,
-		"fmPickFiles":    a.FMPickFiles,
-		"fmPickFolder":   a.FMPickFolder,
-		"fmPickImage":    a.FMPickImage,
-		"fmImagePreview": a.FMImagePreview,
-		"fmArtwork":      a.FMArtwork,
-		"fmRun":          a.FMRun,
-		"addVideos":      a.AddVideos,
-		"addFolderOf":    a.AddFolderOf,
-		"addMedia":       a.AddMedia,
-		"revealFile":     a.RevealFile,
-		"batteryReport":  a.BatteryReport,
-		"setScale":       a.SetScale,
-		"setPref":        a.SetPref,
+		"version":            func() string { return Version },
+		"devices":            a.Devices,
+		"open":               a.Open,
+		"library":            a.Library,
+		"initialize":         a.Initialize,
+		"addFiles":           a.AddFiles,
+		"addFolder":          a.AddFolder,
+		"addPaths":           a.AddPaths,
+		"remove":             a.Remove,
+		"update":             a.Update,
+		"export":             a.Export,
+		"cancel":             a.Cancel,
+		"eject":              a.Eject,
+		"rename":             a.Rename,
+		"reveal":             a.Reveal,
+		"close":              a.Close,
+		"prefs":              a.Prefs,
+		"artwork":            a.Artwork,
+		"dragOut":            a.DragOut,
+		"battery":            a.Battery,
+		"encoders":           a.Encoders,
+		"setEncoder":         a.SetEncoder,
+		"openFolder":         a.OpenFolder,
+		"fmInspect":          a.FMInspect,
+		"fmFromIPod":         a.FMFromIPod,
+		"fmPickFiles":        a.FMPickFiles,
+		"fmPickFolder":       a.FMPickFolder,
+		"fmPickImage":        a.FMPickImage,
+		"fmImagePreview":     a.FMImagePreview,
+		"fmArtwork":          a.FMArtwork,
+		"fmRun":              a.FMRun,
+		"addVideos":          a.AddVideos,
+		"addFolderOf":        a.AddFolderOf,
+		"addMedia":           a.AddMedia,
+		"createPlaylist":     a.CreatePlaylist,
+		"mediaInfo":          a.MediaInfo,
+		"renamePlaylist":     a.RenamePlaylist,
+		"deletePlaylist":     a.DeletePlaylist,
+		"addToPlaylist":      a.AddToPlaylist,
+		"removeFromPlaylist": a.RemoveFromPlaylist,
+		"movePlaylistItems":  a.MovePlaylistItems,
+		"revealFile":         a.RevealFile,
+		"batteryReport":      a.BatteryReport,
+		"setScale":           a.SetScale,
+		"setPref":            a.SetPref,
 	}
 }
 
@@ -356,7 +374,7 @@ func (a *App) Library() (*Library, error) {
 		if i == 0 {
 			continue
 		}
-		pv := PlaylistView{Name: p.Name, Smart: p.IsSmart(), Podcast: p.IsPodcast(), TrackIDs: make([]uint32, 0, len(p.Items))}
+		pv := PlaylistView{ID: strconv.FormatUint(p.ID(), 10), Editable: p.Editable(), Name: p.Name, Smart: p.IsSmart(), Podcast: p.IsPodcast(), TrackIDs: make([]uint32, 0, len(p.Items))}
 		for _, it := range p.Items {
 			pv.TrackIDs = append(pv.TrackIDs, it.TrackID)
 		}
@@ -500,6 +518,7 @@ func (a *App) startTask(name string, allowReadOnly, needDev bool, fn func(ctx co
 		a.mu.Lock()
 		a.busy = false
 		a.stopFn = nil
+		a.xfer = nil
 		a.mu.Unlock()
 		stop()
 		a.emit(Event{Type: "done", Job: name, Result: res})
@@ -508,6 +527,14 @@ func (a *App) startTask(name string, allowReadOnly, needDev bool, fn func(ctx co
 }
 
 func (a *App) progress(job string, done, total int, label string) {
+	if x := a.currentTransfer(); x != nil && x.job == job {
+		x.mu.Lock()
+		x.done, x.total, x.label = done, total, label
+		e := x.event(time.Now())
+		x.mu.Unlock()
+		a.emit(e)
+		return
+	}
 	a.emit(Event{Type: "progress", Job: job, Done: done, Total: total, Label: label})
 }
 
@@ -546,12 +573,13 @@ func normKey(title, artist, album string) dupKey {
 }
 
 // AddPaths copies the given files / folders (songs and videos) to the iPod.
-func (a *App) AddPaths(paths []string) error { return a.AddMedia(paths, "") }
+func (a *App) AddPaths(paths []string) error { return a.AddMedia(paths, "", 0) }
 
 // AddMedia copies files / folders to the iPod. kind limits what is picked
 // up inside folders: "music", "video" or "" for both. Files named directly
-// are always added.
-func (a *App) AddMedia(paths []string, kind string) error {
+// are always added. videoType files videos under Movies (2), Music Videos
+// (32) or TV Shows (64); 0 uses the kind stored in the file, or Movies.
+func (a *App) AddMedia(paths []string, kind string, videoType int) error {
 	return a.startTask("add", false, true, func(ctx context.Context, d *ipod.Device, res *JobResult) error {
 		a.progress("add", 0, 0, "Looking for songs…")
 		var files []string
@@ -602,12 +630,13 @@ func (a *App) AddMedia(paths []string, kind string) error {
 			}
 			return nil
 		}
-		return a.addFiles(ctx, d, "add", files, res)
+		return a.addFiles(ctx, d, "add", files, uint32(videoType), res)
 	})
 }
 
-// AddVideos lets the user pick videos and copies them to the iPod.
-func (a *App) AddVideos() (bool, error) {
+// AddVideos lets the user pick videos and copies them to the iPod, filed
+// under videoType (see AddMedia).
+func (a *App) AddVideos(videoType int) (bool, error) {
 	paths, err := a.plat.PickAny("Add Videos to iPod", []FileFilter{
 		{"Videos", "*.m4v;*.mp4;*.mov;*.avi;*.mkv;*.wmv;*.webm;*.flv;*.mpg;*.mpeg;*.m2ts;*.mts;*.ts;*.3gp;*.divx;*.vob;*.ogv;*.asf"},
 		{"All files", "*.*"},
@@ -615,12 +644,12 @@ func (a *App) AddVideos() (bool, error) {
 	if err != nil || len(paths) == 0 {
 		return false, err
 	}
-	return true, a.AddMedia(paths, "video")
+	return true, a.AddMedia(paths, "video", videoType)
 }
 
 // AddFolderOf lets the user pick a folder and adds its songs ("music") or
 // videos ("video").
-func (a *App) AddFolderOf(kind string) (bool, error) {
+func (a *App) AddFolderOf(kind string, videoType int) (bool, error) {
 	title := "Choose a folder of music to add to your iPod"
 	if kind == "video" {
 		title = "Choose a folder of videos to add to your iPod"
@@ -629,13 +658,13 @@ func (a *App) AddFolderOf(kind string) (bool, error) {
 	if err != nil || dir == "" {
 		return false, err
 	}
-	return true, a.AddMedia([]string{dir}, kind)
+	return true, a.AddMedia([]string{dir}, kind, videoType)
 }
 
 // addFiles copies song files to the iPod and adds them to its database,
 // skipping songs that are already there. Covers embedded in the files are
 // added to the iPod's artwork database.
-func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []string, res *JobResult) error {
+func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []string, videoType uint32, res *JobResult) error {
 	{
 		videos, converted := 0, 0
 		existing := map[dupKey][]uint32{}
@@ -647,6 +676,20 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 		})
 		_, _, free, _ := a.plat.VolumeInfo(d.Root)
 		const reserve = 16 << 20
+		var planned int64
+		for _, f := range files {
+			if st, err := os.Stat(f); err == nil {
+				planned += st.Size()
+			}
+		}
+		xf := a.currentTransfer()
+		if xf == nil || xf.job != job {
+			xf = a.startTransfer(job, "to", planned)
+		} else {
+			xf.mu.Lock()
+			xf.total64 += planned
+			xf.mu.Unlock()
+		}
 		sinceSave := 0
 		for i, f := range files {
 			if a.cancel.Load() {
@@ -712,7 +755,7 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 			if err != nil {
 				return err
 			}
-			if err := copyFile(src, abs); err != nil {
+			if err := copyFileCounted(src, abs, xf); err != nil {
 				os.Remove(abs)
 				res.Errors = append(res.Errors, JobError{f, "copy failed: " + err.Error()})
 				if errors.Is(err, fs.ErrPermission) || isDiskFull(err) {
@@ -729,7 +772,7 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 				mt = 8
 			}
 			if video != nil {
-				mt = itdb.MediaMovie
+				mt = videoMediaType(videoType, f)
 				videos++
 			}
 			var nt *itdb.Track
@@ -745,6 +788,9 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 					BPM: uint16(clampU(tg.BPM)), Compilation: tg.Compilation, Movie: video != nil,
 				})
 			})
+			if mt == itdb.MediaTVShow {
+				a.withDB(func() { nt.SetStr(itdb.MhodTVShow, firstNonEmpty(tg.Album, tg.Title)) })
+			}
 			a.addCover(d, nt, src, res)
 			if video != nil && d.CanWriteArtwork() {
 				var has bool
@@ -796,6 +842,22 @@ func plural(n int, one string, many ...string) string {
 		return fmt.Sprintf("%d %s", n, many[0])
 	}
 	return fmt.Sprintf("%d %ss", n, one)
+}
+
+// videoMediaType decides where a video is filed: the section it was added
+// to, else the kind stored in the file (iTunes' "stik"), else Movies.
+func videoMediaType(chosen uint32, path string) uint32 {
+	switch chosen {
+	case itdb.MediaMovie, itdb.MediaMusicVideo, itdb.MediaTVShow:
+		return chosen
+	}
+	switch media.MP4MediaKind(path) {
+	case 6:
+		return itdb.MediaMusicVideo
+	case 10:
+		return itdb.MediaTVShow
+	}
+	return itdb.MediaMovie
 }
 
 // videoInfo describes a video for the iPod database.
@@ -1085,6 +1147,15 @@ func (a *App) Export(ids []uint32) (bool, error) {
 		return false, err
 	}
 	err = a.startJob("export", true, func(d *ipod.Device, res *JobResult) error {
+		var planned int64
+		a.withDB(func() {
+			for _, id := range ids {
+				if t := d.DB.TrackByID(id); t != nil {
+					planned += int64(t.Size())
+				}
+			}
+		})
+		xf := a.startTransfer("export", "from", planned)
 		for i, id := range ids {
 			if a.cancel.Load() {
 				break
@@ -1117,7 +1188,7 @@ func (a *App) Export(ids []uint32) (bool, error) {
 				}
 				dst = filepath.Join(target, fmt.Sprintf("%s (%d)%s", name, n, ext))
 			}
-			if err := copyFile(src, dst); err != nil {
+			if err := copyFileCounted(src, dst, xf); err != nil {
 				os.Remove(dst)
 				res.Errors = append(res.Errors, JobError{t.Title(), err.Error()})
 				continue
