@@ -1,4 +1,4 @@
-// Command itdbtool is a small diagnostics helper for PodManager's iTunesDB
+// Command itdbtool is a small diagnostics helper for Classic iPod Manager's iTunesDB
 // engine. Usage:
 //
 //	itdbtool dump <iTunesDB>

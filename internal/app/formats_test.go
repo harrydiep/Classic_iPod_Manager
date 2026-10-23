@@ -115,14 +115,17 @@ func TestFormatManager(t *testing.T) {
 	for _, s := range info.Encoders {
 		st[s.ID] = s
 	}
-	if !info.Writable || st["aac"].Active != "ffmpeg" || st["mp3"].Active != "lame" || st["flac"].Active != "" || !strings.HasPrefix(st["decoder"].Active, "ffmpeg") {
+	if !info.Writable || st["aac"].Active != "ffmpeg" || st["mp3"].Active != "lame" || st["flac"].Active != "ffmpeg" || st["flac"].From != "AAC" || !strings.HasPrefix(st["decoder"].Active, "ffmpeg") {
 		t.Fatalf("encoders: %+v", info)
 	}
-	// a missing encoder is reported before anything starts
+	// a missing encoder is reported before anything starts: lame only
+	// writes MP3, so with the FFmpeg folder moved elsewhere FLAC has none
+	a.SetEncoder("aac", filepath.Join(base, "nothing-here"), "")
 	var ne convert.ErrNoEncoder
 	if err := a.FMRun(FMRequest{Items: []FMEdit{{Key: "file:" + wav, Source: "file", Path: wav}}, Convert: true, Format: "flac"}); !errors.As(err, &ne) {
 		t.Fatalf("want ErrNoEncoder, got %v", err)
 	}
+	a.SetEncoder("aac", "", "")
 
 	// put the MP3 on the iPod: its cover goes into the iPod's artwork database
 	if _, err := a.Initialize(root, "Test iPod"); err != nil {

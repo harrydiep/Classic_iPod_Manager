@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PodManager</title>
+<title>Classic iPod Manager</title>
 <style>
 :root{
   --fs:1;
@@ -16,7 +16,7 @@
   --sel-a:#5d95e6; --sel-b:#2f69c6; --sel-text:#fff; --sel-dim:#c7d3e3;
   --head-a:#fbfbfc; --head-b:#e3e6ea; --head-line:#b9bec5;
   --lcd-glass:#f7fafd; --lcd-edge:#7c8691; --lcd-title-a:#eef2f7; --lcd-title-b:#c9d3de; --lcd-text:#20262d;
-  --audio:#3d84db; --other:#e8a33a; --free:#ffffff;
+  --audio:#3d84db; --video:#8a5cd6; --other:#e8a33a; --free:#ffffff;
   --btn-a:#fdfdfd; --btn-b:#dfe2e6; --btn-line:#8f959c;
   --danger:#c8372d;
   --sheet:#eceef1; --sheet-line:#a8aeb5;
@@ -113,7 +113,28 @@ button{cursor:default}
 
 /* ---------- body ---------- */
 .body{display:grid;grid-template-columns:calc(var(--sidebar,212px)*var(--fs)) 1fr;min-height:0}
-.sidebar{background:var(--source);border-right:1px solid var(--alu-line);overflow:auto;padding:8px 0 16px}
+.leftpane{display:grid;grid-template-rows:minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);min-height:0;min-width:0;overflow:hidden;background:var(--source);border-right:1px solid var(--alu-line)}
+.sidebar{background:var(--source);overflow:auto;padding:8px 0 16px;min-height:0}
+.artpane{border-top:1px solid var(--alu-line);background:var(--source)}
+.artpane .ah{display:flex;align-items:center;gap:6px;width:100%;border:0;background:linear-gradient(var(--head-a),var(--head-b));border-bottom:1px solid var(--head-line);padding:0 8px;height:calc(20px*var(--fs));font-size:calc(11px*var(--fs));font-weight:600;color:var(--muted);text-align:left}
+:root[data-modern] .artpane .ah{background:transparent;border-bottom:0;text-transform:uppercase;letter-spacing:.6px;font-size:calc(10px*var(--fs));color:var(--faint);padding:0 18px;height:calc(26px*var(--fs))}
+.artpane .ah .car{transition:transform .15s;display:inline-block;font-size:calc(9px*var(--fs))}
+.artpane.closed .ah .car{transform:rotate(-90deg)}
+.artpane.closed .ab{display:none}
+.artpane .ab{padding:8px 10px 10px}
+:root[data-modern] .artpane .ab{padding:2px 14px 12px}
+.artpane .sq{aspect-ratio:1;width:100%;max-height:calc(46vh);margin:0 auto;display:grid;place-items:center;border-radius:4px;overflow:hidden;position:relative;
+  background:linear-gradient(145deg,#fafbfc,#d9dee4);border:1px solid #a9b0b8;color:#9aa3ad;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+:root[data-dark] .artpane .sq{background:linear-gradient(145deg,#4a4d53,#2c2e32);border-color:#151618;color:#7b828c}
+:root[data-modern] .artpane .sq{background:var(--ctl);border-color:var(--line);color:var(--faint);border-radius:10px}
+.artpane .sq svg{width:36%;height:36%;opacity:.8}
+.artpane .sq img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.artpane .sq .none{position:absolute;bottom:8%;left:0;right:0;text-align:center;font-size:calc(11px*var(--fs))}
+.artpane .cap{margin-top:6px;font-size:calc(11.5px*var(--fs));line-height:1.3;text-align:center;min-height:2.6em}
+.artpane .cap b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artpane .cap span{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artpane .empty-note{color:var(--muted);font-size:calc(11.5px*var(--fs));text-align:center;padding:10px 4px 6px}
+@media (max-height:620px){.artpane .sq{max-height:30vh}}
 .shead{font-size:calc(11px*var(--fs));font-weight:700;color:var(--source-head);padding:10px 12px 3px}
 .sitem{display:flex;align-items:center;gap:7px;height:calc(24px*var(--fs));padding:0 8px 0 18px;font-size:calc(12.5px*var(--fs));white-space:nowrap}
 .sitem .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
@@ -186,6 +207,7 @@ button{cursor:default}
 .capbar i{display:block;height:100%}
 .capbar .a{background:linear-gradient(#8bb8ef,var(--audio) 55%,#2c68b8)}
 .capbar .o{background:linear-gradient(#f6cd85,var(--other) 55%,#c98418)}
+.capbar .v{background:linear-gradient(#bfa2ef,var(--video) 55%,#6a3fb5)}
 .legend{display:flex;gap:22px;margin-top:9px;font-size:calc(12px*var(--fs));color:var(--muted)}
 .legend span{display:flex;align-items:center;gap:6px}
 .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.2)}
@@ -217,7 +239,7 @@ button{cursor:default}
 .captext b{font-weight:600}
 .minibar{flex:1;min-width:48px;max-width:140px;height:9px;border-radius:5px;overflow:hidden;display:flex;background:var(--free);border:1px solid #8b939c}
 .minibar i{display:block;height:100%}
-.minibar .a{background:var(--audio)}.minibar .o{background:var(--other)}
+.minibar .a{background:var(--audio)}.minibar .o{background:var(--other)}.minibar .v{background:var(--video)}
 .seg{display:flex;border:1px solid var(--btn-line);border-radius:10px;overflow:hidden}
 .seg button{border:0;background:linear-gradient(var(--btn-a),var(--btn-b));font-size:calc(10.5px*var(--fs));padding:1px 9px}
 .seg button.on{background:linear-gradient(#5b8fd9,#2f64ba);color:#fff}
@@ -466,7 +488,9 @@ button{cursor:default}
 :root[data-modern] .search input{color:var(--input-text)}
 :root[data-modern] .search svg{color:var(--muted)}
 :root[data-modern] .search .clear{background:var(--faint)}
-:root[data-modern] .sidebar{background:var(--source);border-right:1px solid var(--line);padding-top:6px}
+:root[data-modern] .sidebar{background:var(--source);padding-top:6px}
+:root[data-modern] .leftpane{border-right-color:var(--line)}
+:root[data-modern] .artpane{border-top-color:var(--line)}
 :root[data-modern] .shead{text-transform:uppercase;letter-spacing:.6px;font-size:calc(10px*var(--fs));color:var(--faint);padding:12px 18px 5px}
 :root[data-modern] .sitem{margin:1px 8px;padding:0 8px 0 10px;border-radius:7px;height:calc(26px*var(--fs))}
 :root[data-modern] .sitem.child{padding-left:26px}
@@ -497,6 +521,7 @@ button{cursor:default}
 :root[data-modern] .capbar{border:0;box-shadow:none;height:14px;border-radius:7px}
 :root[data-modern] .capbar .a,:root[data-modern] .minibar .a{background:var(--audio)}
 :root[data-modern] .capbar .o,:root[data-modern] .minibar .o{background:var(--other)}
+:root[data-modern] .capbar .v,:root[data-modern] .minibar .v{background:var(--video)}
 :root[data-modern] .legend i{border:0}
 :root[data-modern] .screen{padding:1px;border-radius:14px;background:var(--lcd-frame);box-shadow:none}
 :root[data-modern] .screen-in{border-radius:13px}
@@ -536,6 +561,7 @@ button{cursor:default}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-bolt" viewBox="0 0 10 14"><path d="M6.2 0 0 8h4l-1 6 7-8.4H5.6z" fill="currentColor"/></symbol>
+  <symbol id="i-video" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="9.5" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="m11 7 3.5-2v6L11 9z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
   <symbol id="i-convert" viewBox="0 0 16 16"><path d="M2.5 5.5h9.2M9.4 3l2.6 2.5-2.6 2.5M13.5 10.5H4.3M6.6 8 4 10.5 6.6 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-image" viewBox="0 0 16 16"><rect x="1.8" y="2.5" width="12.4" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="5.6" cy="6.2" r="1.3" fill="currentColor"/><path d="m2.5 12 3.6-3.5 2.4 2.3 2.2-2 3 3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
   <symbol id="i-add" viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
@@ -566,7 +592,7 @@ button{cursor:default}
     <div></div>
     <div class="lcd" role="status" aria-live="polite">
       <div class="lcd-in">
-        <div class="lcd-title"><span id="lcdTitle">PodManager</span><span class="battbox unknown" id="battBox" tabindex="0" role="img" aria-label="Battery" aria-describedby="battPop"><svg class="bolt" aria-hidden="true"><use href="#i-bolt"/></svg><span class="batt"><i id="lcdBatt" style="width:100%"></i></span></span></div>
+        <div class="lcd-title"><span id="lcdTitle">Classic iPod Manager</span><span class="battbox unknown" id="battBox" tabindex="0" role="img" aria-label="Battery" aria-describedby="battPop"><svg class="bolt" aria-hidden="true"><use href="#i-bolt"/></svg><span class="batt"><i id="lcdBatt" style="width:100%"></i></span></span></div>
         <div class="lcd-body" id="lcdBody"></div>
       </div>
     </div>
@@ -580,7 +606,7 @@ button{cursor:default}
   </header>
 
   <div class="body">
-    <nav class="sidebar" id="sidebar" aria-label="Sources"></nav>
+    <div class="leftpane"><nav class="sidebar" id="sidebar" aria-label="Sources"></nav><section class="artpane" id="artPane" aria-label="Artwork of the selected song"></section></div>
     <main class="main" id="main"></main>
   </div>
 
@@ -597,7 +623,7 @@ button{cursor:default}
 /* ------------------------------------------------------------------ helpers */
 const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const api = (m, ...a) => window.podCall ? window.podCall(m, ...a) : Promise.reject(new Error("PodManager backend not available"));
+const api = (m, ...a) => window.podCall ? window.podCall(m, ...a) : Promise.reject(new Error("Classic iPod Manager backend not available"));
 // Settings live in the backend (the page is loaded from memory, so browser
 // storage isn't dependable). They are fetched once before start-up.
 const prefs = {};
@@ -632,7 +658,7 @@ const COLS = [
 ];
 const COL_BY_KEY = Object.fromEntries(COLS.map(c => [c.key, c]));
 const KIND_SHORT = {"MPEG audio file":"MP3", "AAC audio file":"AAC", "Apple Lossless audio file":"ALAC", "WAV audio file":"WAV",
-  "AIFF audio file":"AIFF", "AAC audio book file":"AAC book", "Protected AAC audio file":"AAC (DRM)", "Purchased AAC audio file":"AAC"};
+  "AIFF audio file":"AIFF", "MPEG-4 video file":"Video", "AAC audio book file":"AAC book", "Protected AAC audio file":"AAC (DRM)", "Purchased AAC audio file":"AAC"};
 function fileType(t){
   if (KIND_SHORT[t.kind]) return KIND_SHORT[t.kind];
   const ext = (t.path || "").split(".").pop();
@@ -783,14 +809,14 @@ async function renderEncoders(box, info){
   if (!box.isConnected) return;
   const rows = (info.encoders || []).filter(s => !s.builtin);
   box.innerHTML = `<p class="enc-main">Main folder: <b>${esc(info.main || "–")}</b> <button class="linkbtn" data-openf="main">Open</button>
-      ${info.main && !info.writable ? `<br><span style="color:var(--danger)">PodManager can’t write to this folder. Move PodManager.exe somewhere you can write to, such as your Documents folder.</span>` : ""}</p>
-    <div class="opt-hint" style="margin:-4px 0 10px">Put each encoder program (the .exe) in its format’s folder, or in a folder inside it. Folders are inside the main folder unless you type a full path. WAV and AIFF are written by PodManager and need nothing. The Decoder folder is for ffmpeg.exe, which lets PodManager read formats such as FLAC, Ogg and WMA.</div>
+      ${info.main && !info.writable ? `<br><span style="color:var(--danger)">Classic iPod Manager can’t write to this folder. Move Classic iPod Manager.exe somewhere you can write to, such as your Documents folder.</span>` : ""}</p>
+    <div class="opt-hint" style="margin:-4px 0 10px">Put each encoder program (the .exe) in its format’s folder, or in a folder inside it. A program that writes several formats, such as ffmpeg.exe, is also used for formats whose own folder is empty. Folders are inside the main folder unless you type a full path. WAV and AIFF are written by Classic iPod Manager and need nothing. The Decoder folder is for ffmpeg.exe, which lets Classic iPod Manager read formats such as FLAC, Ogg and WMA.</div>
     <div class="enc-tbl">${rows.map(s => `
       <span class="n">${esc(s.label)}</span>
       <input type="text" value="${esc(s.folder)}" data-enc="${s.id}" spellcheck="false" aria-label="${esc(s.label)} encoder folder">
       <button class="btn sm" data-openf="${s.id}">Open</button>
       <div class="st ${s.active ? "" : "none"}">${s.active
-        ? `Using <b>${esc(s.active)}</b>${(s.tools || []).length > 1 ? ` <select data-choice="${s.id}" aria-label="${esc(s.label)} encoder"><option value="">Automatic</option>${s.tools.map(t => `<option value="${esc(t.name)}" ${t.name === s.choice ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>` : ""}`
+        ? `Using <b>${esc(s.active)}</b>${s.from ? ` from the ${esc(s.from)} folder (nothing in this one)` : ""}${(s.tools || []).length > 1 ? ` <select data-choice="${s.id}" aria-label="${esc(s.label)} encoder"><option value="">Automatic</option>${s.tools.map(t => `<option value="${esc(t.name)}" ${t.name === s.choice ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select>` : ""}`
         : `Not found – put ${esc(s.hint)} here${s.exists ? "" : " (the folder doesn’t exist yet)"}`}</div>`).join("")}
     </div>
     <div class="sum-actions" style="margin-top:12px"><button class="btn sm" data-recheck>Check Again</button>
@@ -816,7 +842,7 @@ async function renderEncoders(box, info){
 function renderLCD(){
   const body = $("#lcdBody");
   const lib = S.lib;
-  $("#lcdTitle").textContent = S.busy && S.busy.label ? S.busy.label : lib ? lib.device.name : "PodManager";
+  $("#lcdTitle").textContent = S.busy && S.busy.label ? S.busy.label : lib ? lib.device.name : "Classic iPod Manager";
   paintBattery();
   if (S.busy){
     const b = S.busy, pct = b.total ? Math.round(b.done / b.total * 100) : 0;
@@ -835,7 +861,8 @@ function renderLCD(){
     body.innerHTML = `<div class="lcd-line1">${l1}</div><div class="lcd-line2">${S.devices.length ? "" : "Connect it with its USB cable"}</div>`;
     return;
   }
-  body.innerHTML = `<div class="lcd-line1">${esc(plural(lib.tracks.length, "song"))}</div>
+  const lc = libCounts();
+  body.innerHTML = `<div class="lcd-line1">${esc(plural(lc.songs, "song"))}${lc.videos ? ", " + esc(plural(lc.videos, "video")) : ""}</div>
     <div class="lcd-line2">${esc(fmtBytes(lib.device.free))} free of ${esc(fmtBytes(lib.device.total))}</div>`;
 }
 let flashTimer;
@@ -929,7 +956,7 @@ function openBatterySheet(){
       <div id="bsStatus"></div>
       <div class="opt-sec">Details</div>
       <textarea class="diag" id="bsReport" readonly spellcheck="false" aria-label="Battery details">Asking the iPod…</textarea>
-      <div class="opt-hint" style="margin-top:6px">PodManager reads the battery over the iPod’s USB accessory connection, the one car stereos use. If it doesn’t work, these details show which step failed.</div>
+      <div class="opt-hint" style="margin-top:6px">Classic iPod Manager reads the battery over the iPod’s USB accessory connection, the one car stereos use. If it doesn’t work, these details show which step failed.</div>
     </div>
     <div class="sheet-f"><div class="left"><button class="btn" data-copy disabled>Copy Details</button><button class="btn" data-again disabled>Check Again</button></div><button class="btn primary" data-ok>Done</button></div>`,
   (v, close) => {
@@ -989,7 +1016,9 @@ function renderSidebar(){
       ${open && S.renaming ? `<input id="renameIn" value="${esc(S.lib.device.name)}" aria-label="iPod name">` : `<span class="lbl">${esc(open ? S.lib.device.name : d.name)}</span>`}
       <button class="eject" data-eject="${esc(d.root)}" title="Eject" aria-label="Eject ${esc(d.name)}"><svg width="12" height="12"><use href="#i-eject"/></svg></button></div>`;
     if (open){
-      h += `<div class="sitem child ${S.view === "music" ? "sel" : ""}" data-view="music"><svg><use href="#i-note"/></svg><span class="lbl">Music</span><span class="cnt">${S.lib.tracks.length.toLocaleString()}</span></div>`;
+      const n = libCounts();
+      h += `<div class="sitem child ${S.view === "music" ? "sel" : ""}" data-view="music"><svg><use href="#i-note"/></svg><span class="lbl">Music</span><span class="cnt">${n.songs.toLocaleString()}</span></div>`;
+      h += `<div class="sitem child ${S.view === "videos" ? "sel" : ""}" data-view="videos"><svg><use href="#i-video"/></svg><span class="lbl">Videos</span><span class="cnt">${n.videos ? n.videos.toLocaleString() : ""}</span></div>`;
     }
   }
   if (S.lib && S.lib.playlists.length){
@@ -1037,11 +1066,18 @@ function setView(v){ S.view = v; S.sel.clear(); S.anchor = S.cursor = null; S.li
 /* ------------------------------------------------------------------ list building */
 function baseTracks(){
   if (!S.lib) return [];
+  if (S.view === "music") return S.lib.tracks.filter(t => !t.video);
+  if (S.view === "videos") return S.lib.tracks.filter(t => t.video);
   if (S.view.startsWith("pl:")){
     const p = S.lib.playlists[+S.view.slice(3)];
     return p ? p.trackIds.map(id => S.byId.get(id)).filter(Boolean) : [];
   }
-  return S.lib.tracks;
+  return S.lib.tracks.filter(t => !t.video);
+}
+function libCounts(){
+  let songs = 0, videos = 0;
+  for (const t of (S.lib ? S.lib.tracks : [])) t.video ? videos++ : songs++;
+  return {songs, videos};
 }
 function searchFilter(list){
   const words = S.search.toLowerCase().split(/\s+/).filter(Boolean);
@@ -1106,10 +1142,10 @@ function screenRows(title, rows){
 }
 function welcomeHTML(){
   return `<div class="welcome"><div class="welcome-card">
-    ${screenRows("PodManager", [["Connect iPod", "›"], ["Music", ""], ["Playlists", ""], ["Settings", ""], ["About", ""]])}
+    ${screenRows("Classic iPod Manager", [["Connect iPod", "›"], ["Music", ""], ["Playlists", ""], ["Settings", ""], ["About", ""]])}
     <div><h1>Connect your iPod</h1>
     <p>Plug it in with its USB cable. It shows up here as soon as Windows mounts it as a drive.</p>
-    <p>PodManager works with Windows-formatted iPods (FAT32). An iPod formatted for a Mac won’t appear until it’s restored for Windows.</p></div>
+    <p>Classic iPod Manager works with Windows-formatted iPods (FAT32). An iPod formatted for a Mac won’t appear until it’s restored for Windows.</p></div>
   </div></div>`;
 }
 function pickHTML(){
@@ -1122,7 +1158,7 @@ function setupHTML(){
   return `<div class="welcome"><div class="welcome-card">
     ${screenRows("Setup", [["Name your iPod", "›"], ["Music", "0"], ["Capacity", fmtBytes(d.total)]])}
     <div><h1>Set up this iPod</h1>
-    <p>The iPod on ${esc(d.root)} doesn’t have a music library yet. PodManager can create an empty one so you can start adding songs.</p>
+    <p>The iPod on ${esc(d.root)} doesn’t have a music library yet. Classic iPod Manager can create an empty one so you can start adding songs.</p>
     <div class="form" style="grid-template-columns:auto 1fr;margin:14px 0">
       <label class="k" for="setupName">Name</label><input type="text" id="setupName" value="${esc(d.name && d.name !== "iPod" ? d.name : "My iPod")}">
     </div>
@@ -1136,22 +1172,22 @@ function bindSetup(){
   };
   $("#setupName").focus();
 }
-function capParts(d, music){
-  const total = d.total || 1, used = Math.max(0, total - d.free), audio = Math.min(music, used), other = Math.max(0, used - audio);
-  return {audio, other, free: d.free, total, pa: audio/total*100, po: other/total*100};
+function capParts(d, music, video){
+  const total = d.total || 1, used = Math.max(0, total - d.free), audio = Math.min(music, used), vid = Math.min(video || 0, used - audio), other = Math.max(0, used - audio - vid);
+  return {audio, video: vid, other, free: d.free, total, pa: audio/total*100, pv: vid/total*100, po: other/total*100};
 }
 function summaryHTML(){
-  const L = S.lib, d = L.device, c = capParts(d, L.musicBytes);
-  const totalMs = L.tracks.reduce((s, t) => s + (t.lengthMs||0), 0);
+  const L = S.lib, d = L.device, c = capParts(d, L.musicBytes, L.videoBytes), n = libCounts();
+  const totalMs = L.tracks.filter(t => !t.video).reduce((s, t) => s + (t.lengthMs||0), 0);
   const gen = d.model.generation ? `${d.model.name} · ${d.model.generation}` : d.model.name;
   return `<div class="summary"><div class="sum-grid">
-    ${screenRows(d.name, [["Music", plural(L.tracks.length, "song")], ["Playlists", String(L.playlists.length)], ["Capacity", fmtBytes(d.total)], ["Available", fmtBytes(d.free)], ["Battery", battShort(), "sumBatt"], ["Version", d.firmware || "—"], ["Drive", d.root]])}
+    ${screenRows(d.name, [["Music", plural(n.songs, "song")], ["Videos", String(n.videos)], ["Playlists", String(L.playlists.length)], ["Capacity", fmtBytes(d.total)], ["Available", fmtBytes(d.free)], ["Battery", battShort(), "sumBatt"], ["Version", d.firmware || "—"], ["Drive", d.root]])}
     <div>
       <h1 class="sum-name">${esc(d.name)}</h1>
       <p class="sum-sub">${esc(gen)}${d.model.number ? " (M"+esc(d.model.number)+")" : ""}</p>
-      <div class="capbar" role="img" aria-label="Audio ${fmtBytes(c.audio)}, other ${fmtBytes(c.other)}, free ${fmtBytes(c.free)}"><i class="a" style="width:${c.pa}%"></i><i class="o" style="width:${c.po}%"></i></div>
-      <div class="legend"><span><i style="background:var(--audio)"></i>Audio <b>${fmtBytes(c.audio)}</b></span><span><i style="background:var(--other)"></i>Other <b>${fmtBytes(c.other)}</b></span><span><i style="background:var(--free)"></i>Free <b>${fmtBytes(c.free)}</b></span></div>
-      <p class="sum-sub" style="margin:14px 0 0">${esc(plural(L.tracks.length, "song"))}, ${esc(fmtTotal(totalMs))} of music</p>
+      <div class="capbar" role="img" aria-label="Audio ${fmtBytes(c.audio)}, video ${fmtBytes(c.video)}, other ${fmtBytes(c.other)}, free ${fmtBytes(c.free)}"><i class="a" style="width:${c.pa}%"></i><i class="v" style="width:${c.pv}%"></i><i class="o" style="width:${c.po}%"></i></div>
+      <div class="legend"><span><i style="background:var(--audio)"></i>Audio <b>${fmtBytes(c.audio)}</b></span>${c.video ? `<span><i style="background:var(--video)"></i>Video <b>${fmtBytes(c.video)}</b></span>` : ""}<span><i style="background:var(--other)"></i>Other <b>${fmtBytes(c.other)}</b></span><span><i style="background:var(--free)"></i>Free <b>${fmtBytes(c.free)}</b></span></div>
+      <p class="sum-sub" style="margin:14px 0 0">${esc(plural(n.songs, "song"))}, ${esc(fmtTotal(totalMs))} of music${n.videos ? ` · ${esc(plural(n.videos, "video"))}` : ""}</p>
       <div class="sum-actions">
         <button class="btn primary" id="sAdd" ${L.readOnly ? "disabled" : ""}>Add Songs…</button>
         <button class="btn" id="sFolder" ${L.readOnly ? "disabled" : ""}>Add Folder…</button>
@@ -1161,7 +1197,7 @@ function summaryHTML(){
       <div class="notes">
         ${L.readOnly ? `<p>${esc(L.readOnly)}</p>` : ""}
         <p>Changes are saved to the iPod straight away. Eject it before unplugging so it can finish updating its menus.</p>
-        <p>Ratings and play counts from the iPod are kept, and a backup of the music database is made the first time PodManager changes it.</p>
+        <p>Ratings and play counts from the iPod are kept, and a backup of the music database is made the first time Classic iPod Manager changes it.</p>
       </div>
     </div></div></div>`;
 }
@@ -1295,18 +1331,24 @@ function renderRows(force){
   const em = $("#empty");
   if (!list.length){
     em.classList.remove("hidden");
-    em.innerHTML = S.search ? `<div><p class="big">No songs match “${esc(S.search)}”</p><p>Try fewer words, or clear the search.</p></div>`
+    em.innerHTML = S.search ? `<div><p class="big">No ${S.view === "videos" ? "videos" : "songs"} match “${esc(S.search)}”</p><p>Try fewer words, or clear the search.</p></div>`
       : S.view.startsWith("pl:") ? `<div><p class="big">This playlist is empty</p></div>`
+      : S.view === "videos" ? `<div><p class="big">No videos on this iPod yet</p><p>Use Add Videos, or drag videos onto the window. Videos the iPod can’t play are converted with FFmpeg if it’s in an encoder folder.</p></div>`
       : `<div><p class="big">No music on this iPod yet</p><p>Use Add Songs or Add Folder to copy music from your computer.</p></div>`;
   } else em.classList.add("hidden");
   renderStats();
 }
 function selectedIds(){ return [...S.sel]; }
 function updateButtons(){
+  updateArtPane();
   const ro = !S.lib || !!S.lib.readOnly, busy = !!S.busy, n = S.sel.size;
   $("#bAdd").disabled = ro || busy; $("#bFolder").disabled = ro || busy;
   $("#bInfo").disabled = ro || busy || !n; $("#bRemove").disabled = ro || busy || !n;
   $("#bBrowse").classList.toggle("on", S.browser && S.view !== "fm"); $("#bBrowse").disabled = !S.lib;
+  const vids = S.view === "videos";
+  $("#bAdd .t").textContent = vids ? "Add Videos" : "Add Songs";
+  $("#bAdd").title = vids ? "Add videos (Ctrl+O)" : "Add songs (Ctrl+O)";
+  $("#bFolder").title = vids ? "Add every video in a folder" : "Add every song in a folder";
   $("#bFormats").classList.toggle("on", S.view === "fm");
 }
 function selectRange(a, b){ const list = S.list; const [lo, hi] = a < b ? [a, b] : [b, a]; for (let i = lo; i <= hi; i++) if (list[i]) S.sel.add(list[i].id); }
@@ -1387,7 +1429,7 @@ async function startDragOut(){
 }
 
 /* ------------------------------------------------------------------ drag songs in from Explorer */
-const BAD_TYPES = /^(audio\/(flac|x-flac|ogg|opus|x-ms-wma|ape|x-ape)|video\/|image\/|text\/|application\/(pdf|zip|x-zip))/;
+const BAD_TYPES = /^(audio\/(flac|x-flac|ogg|opus|x-ms-wma|ape|x-ape)|image\/|text\/|application\/(pdf|zip|x-zip))/;
 let dragDepth = 0;
 function dropDenyReason(){
   if (S.view === "fm") return fmBusy() ? "Please wait for the current task to finish" : "";
@@ -1415,7 +1457,7 @@ function showDropZone(e){
   z.classList.toggle("deny", !!reason || allBad);
   const kinds = [...new Set(bad.map(i => (i.type.split("/")[1] || "").replace(/^x-/, "").toUpperCase()))].join(", ");
   $("#dropTitle").textContent = reason || (allBad ? "Can’t copy these files" : `Copy to ${S.lib.device.name}`);
-  $("#dropSub").textContent = reason ? "" : allBad ? `${kinds || "These files"} can’t be played on an iPod` : (items.length ? `Drop to copy ${plural(items.length, "item")}` + (bad.length ? ` (${bad.length} can’t be played on an iPod)` : "") : "Drop songs or folders");
+  $("#dropSub").textContent = reason ? "" : allBad ? `${kinds || "These files"} can’t be played on an iPod` : (items.length ? `Drop to copy ${plural(items.length, "item")}` + (bad.length ? ` (${bad.length} can’t be played on an iPod)` : "") : "Drop songs, videos or folders");
   e.dataTransfer.dropEffect = (reason || allBad) ? "none" : "copy";
 }
 function hideDropZone(){ dragDepth = 0; $("#dropzone").classList.remove("on"); }
@@ -1440,7 +1482,7 @@ addEventListener("drop", e => {
     flash("Checking songs…", "");
     api("dropNames", [...files].map(f => f.name)).catch(err => alertSheet("Couldn’t add the songs", err.message));
   } else {
-    alertSheet("Drag and drop isn’t available", "Your copy of the Microsoft Edge WebView2 Runtime is too old to pass dropped files to PodManager. Update it from Windows Update, or use Add Songs.");
+    alertSheet("Drag and drop isn’t available", "Your copy of the Microsoft Edge WebView2 Runtime is too old to pass dropped files to Classic iPod Manager. Update it from Windows Update, or use Add Songs.");
   }
 });
 function rejectList(list){
@@ -1451,17 +1493,23 @@ function handleDropCheck(d){
   S.flash = null; renderLCD();
   if (d.reason){ alertSheet("Can’t copy to the iPod", d.reason); return; }
   const rej = d.rejected || [], ok = d.accepted || [];
-  const go = () => api("addPaths", ok).catch(e => alertSheet("Couldn’t add the songs", e.message));
+  const go0 = () => api("addPaths", ok).catch(e => alertSheet("Couldn’t add the songs", e.message));
+  // videos the iPod can't play are converted first: say so before starting
+  const go = !d.convert ? go0 : () => sheet(`<div class="sheet-h">Convert ${plural(d.convert, "video")} for the iPod?</div><div class="sheet-b">
+      <p>${d.convert === 1 ? "This video isn’t" : "These videos aren’t"} in a format the iPod can play, so ${d.convert === 1 ? "it" : "they"} will be converted with FFmpeg first (640×480 H.264 with AAC sound). This can take a while for long videos.</p>
+      <p>The converted ${d.convert === 1 ? "copy is" : "copies are"} also kept in the Converted Videos folder.</p></div>
+      <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Convert and Copy</button></div>`,
+    (v, close) => { v.querySelector("[data-c]").onclick = close; v.querySelector("[data-ok]").onclick = () => { close(); go0(); }; });
   if (!ok.length){
     sheet(`<div class="sheet-h">${rej.length === 1 ? "This file can’t be copied to your iPod" : "These files can’t be copied to your iPod"}</div>
-      <div class="sheet-b"><p>The iPod classic plays MP3, AAC (M4A), Apple Lossless, WAV and AIFF files. Convert other formats before adding them.</p>${rejectList(rej)}</div>
+      <div class="sheet-b"><p>The iPod classic plays MP3, AAC (M4A), Apple Lossless, WAV and AIFF songs, and MPEG-4 videos. Convert other song formats in the Format Manager first. Videos are converted automatically when ffmpeg.exe is in an encoder folder.</p>${rejectList(rej)}</div>
       <div class="sheet-f"><button class="btn primary" data-ok>OK</button></div>`, (v, close) => { v.querySelector("[data-ok]").onclick = close; });
     return;
   }
   if (!rej.length){ go(); return; }
   sheet(`<div class="sheet-h">${rej.length === 1 ? "1 file can’t be played on an iPod" : `${rej.length.toLocaleString()} files can’t be played on an iPod`}</div>
-    <div class="sheet-b"><p>These won’t be copied. The iPod classic plays MP3, AAC (M4A), Apple Lossless, WAV and AIFF files.</p>${rejectList(rej)}</div>
-    <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Copy ${plural(d.songs, "Other Song")}</button></div>`,
+    <div class="sheet-b"><p>These won’t be copied. The iPod classic plays MP3, AAC (M4A), Apple Lossless, WAV and AIFF songs, and MPEG-4 videos.</p>${rejectList(rej)}</div>
+    <div class="sheet-f"><button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Copy ${plural(d.songs, d.videos ? "Other Item" : "Other Song")}</button></div>`,
     (v, close) => { v.querySelector("[data-c]").onclick = close; v.querySelector("[data-ok]").onclick = () => { close(); go(); }; });
 }
 
@@ -1513,7 +1561,8 @@ function alertSheet(title, msg){
 
 /* ------------------------------------------------------------------ actions */
 async function addSongs(){ if (!canWrite()) return; try { await api("addFiles"); } catch(e){ alertSheet("Couldn’t add songs", e.message); } }
-async function addFolder(){ if (!canWrite()) return; try { await api("addFolder"); } catch(e){ alertSheet("Couldn’t add the folder", e.message); } }
+async function addFolder(){ if (!canWrite()) return; try { await api("addFolderOf", S.view === "videos" ? "video" : "music"); } catch(e){ alertSheet("Couldn’t add the folder", e.message); } }
+async function addVideos(){ if (!canWrite()) return; try { await api("addVideos"); } catch(e){ alertSheet("Couldn’t add videos", e.message); } }
 async function exportSel(){ const ids = selectedIds(); if (!ids.length) return; try { await api("export", ids); } catch(e){ alertSheet("Couldn’t copy the songs", e.message); } }
 function canWrite(){ return S.lib && !S.lib.readOnly && !S.busy; }
 async function setRating(ids, r){ try { await api("update", ids, {rating:r}, false); } catch(e){ alertSheet("Couldn’t change the rating", e.message); } }
@@ -1569,6 +1618,13 @@ function infoSheet(singleId, multiIds){
     if (type === "rating"){ const r = common("rating"); rows += `<span class="k" style="text-align:right;color:var(--muted);font-size:12px">Rating</span><div class="f">${pick("rating")}<div class="rating-edit" data-r="${r === undefined ? -1 : r||0}">${[1,2,3,4,5].map(i => `<span data-s="${i}">★</span>`).join("")}<span class="x" data-s="0">Clear</span></div></div>`; }
     if (type === "bool"){ const c = common("compilation"); rows += `<span></span><div class="f">${pick("compilation")}<label class="check"><input type="checkbox" data-f="compilation" ${c ? "checked" : ""}>Part of a compilation</label></div>`; }
   }
+  if (tracks.every(t => t.video)){
+    const mt = common("mediaType");
+    const opts = [[2, "Movie"], [32, "Music Video"], [64, "TV Show"]];
+    rows += `<label class="k" for="f_mediaType">Video kind</label><div class="f">${pick("mediaType")}<select class="selbox" style="width:auto;min-width:150px" id="f_mediaType" data-f="mediaType">
+      ${mt === undefined ? `<option value="" selected disabled>Mixed</option>` : ""}${opts.map(([v, l]) => `<option value="${v}" ${mt === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <span class="of" title="Where it appears on the iPod’s Videos menu. TV shows are grouped by their Album name.">on the iPod’s Videos menu</span></div>`;
+  }
   const t0 = tracks[0];
   const meta = "";
   const writeDef = store.get("writeTags", true);
@@ -1609,6 +1665,7 @@ function infoSheet(singleId, multiIds){
       v.querySelectorAll("[data-f]").forEach(el => {
         const k = el.dataset.f; if (!include(k)) return;
         if (el.type === "checkbox") p[k] = el.checked;
+        else if (k === "mediaType"){ if (el.value !== "") p[k] = +el.value; }
         else if (el.type === "number") p[k] = el.value === "" ? 0 : Math.max(0, parseInt(el.value, 10) || 0);
         else p[k] = el.value;
       });
@@ -1649,17 +1706,79 @@ async function loadArt(v, id, cap, multi){
   const img = new Image();
   img.alt = "Album artwork"; img.src = art.dataUrl;
   img.title = `${art.width} × ${art.height}` + (art.source === "ipod" ? " · stored on the iPod" : " · embedded in the song file") + " · click to enlarge";
-  img.onclick = () => {
-    const lb = document.createElement("div"); lb.className = "lightbox";
-    lb.innerHTML = `<div><img src="${art.dataUrl}" alt="Album artwork"><p>${art.width} × ${art.height}${art.source === "ipod" ? " · stored on the iPod" : ""}</p></div>`;
-    const shut = e => { e && e.stopPropagation(); lb.remove(); removeEventListener("keydown", key, true); };
-    const key = e => { if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); shut(); } };
-    lb.onclick = shut; addEventListener("keydown", key, true);
-    document.body.appendChild(lb);
-  };
+  img.onclick = () => openLightbox(art);
   box.querySelector("svg").remove();
   box.appendChild(img);
 }
+
+/* ------------------------------------------------------------------ artwork pane */
+// The left pane's bottom shows the cover of the song last clicked, in the
+// song list or the Format Manager.
+const artPaneCache = new Map();
+let artPaneTimer = null, artPaneKey = null;
+function openLightbox(art){
+  const lb = document.createElement("div"); lb.className = "lightbox";
+  lb.innerHTML = `<div><img src="${art.dataUrl}" alt="Album artwork"><p>${art.width ? `${art.width} × ${art.height}` : ""}${art.source === "ipod" ? " · stored on the iPod" : ""}</p></div>`;
+  const shut = e => { e && e.stopPropagation(); lb.remove(); removeEventListener("keydown", key, true); };
+  const key = e => { if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); shut(); } };
+  lb.onclick = shut; addEventListener("keydown", key, true);
+  document.body.appendChild(lb);
+}
+function artPaneTarget(){
+  if (S.view === "fm"){
+    const it = FM.byKey.get(FM.cursor) && FM.sel.has(FM.cursor) ? FM.byKey.get(FM.cursor) : fmSelected()[0];
+    if (!it) return null;
+    return {key: "fm:" + it.key, title: fmTitle(it), sub: [fmVal(it, "artist"), fmVal(it, "album")].filter(Boolean).join(" — "),
+      pending: it.art, load: () => api("fmArtwork", it.source, it.path, it.trackId || 0)};
+  }
+  if (!S.lib || !S.sel.size) return null;
+  const id = S.sel.has(S.cursor) ? S.cursor : [...S.sel][0];
+  const t = S.byId.get(id); if (!t) return null;
+  return {key: "t:" + id, title: t.title, sub: [t.artist, t.album].filter(Boolean).join(" — "), load: () => api("artwork", id)};
+}
+function updateArtPane(){
+  clearTimeout(artPaneTimer);
+  artPaneTimer = setTimeout(paintArtPane, 90);
+}
+async function paintArtPane(){
+  const pane = $("#artPane"); if (!pane) return;
+  const closed = !!store.get("artPaneClosed", false);
+  const tgt = artPaneTarget();
+  const head = `<button class="ah" id="artPaneToggle" aria-expanded="${!closed}"><span class="car">▼</span>${tgt ? "Selected Item" : "Artwork"}</button>`;
+  pane.classList.toggle("closed", closed);
+  if (!tgt){
+    artPaneKey = null;
+    pane.innerHTML = head + `<div class="ab"><div class="empty-note">${S.lib || FM.items.length ? "Select a song or video to see its artwork" : "Nothing selected"}</div></div>`;
+    bindArtPane(pane);
+    return;
+  }
+  const show = (art, note) => {
+    const img = art ? `<img src="${art.dataUrl}" alt="Artwork for ${esc(tgt.title)}" title="${art.width ? `${art.width} × ${art.height} · ` : ""}Click to enlarge">` : "";
+    pane.innerHTML = head + `<div class="ab"><div class="sq">${img || `<svg><use href="#i-note"/></svg><div class="none">${esc(note || "No artwork")}</div>`}</div>
+      <div class="cap"><b title="${esc(tgt.title)}">${esc(tgt.title)}</b><span title="${esc(tgt.sub)}">${esc(tgt.sub || "")}</span></div></div>`;
+    bindArtPane(pane);
+    const im = pane.querySelector("img"); if (im) im.onclick = () => openLightbox(art);
+  };
+  if (tgt.pending){
+    if (tgt.pending.action === "remove") show(null, "Will be removed");
+    else show({dataUrl: tgt.pending.dataUrl, width: tgt.pending.w, height: tgt.pending.h});
+    return;
+  }
+  artPaneKey = tgt.key;
+  if (artPaneCache.has(tgt.key)){ show(artPaneCache.get(tgt.key)); return; }
+  if (closed){ show(null, ""); return; }
+  if (!pane.querySelector(".sq")) show(null, "");
+  let art = null;
+  try { art = await tgt.load(); } catch(e){}
+  if (artPaneCache.size > 300) artPaneCache.delete(artPaneCache.keys().next().value);
+  artPaneCache.set(tgt.key, art);
+  if (artPaneKey === tgt.key) show(art);
+}
+function bindArtPane(pane){
+  const b = pane.querySelector("#artPaneToggle");
+  if (b) b.onclick = () => { store.set("artPaneClosed", !store.get("artPaneClosed", false)); paintArtPane(); };
+}
+function resetArtPane(){ artPaneCache.clear(); updateArtPane(); }
 
 /* ------------------------------------------------------------------ format manager */
 // Songs from the computer or the iPod, with pending tag/artwork edits.
@@ -1703,7 +1822,7 @@ function fmAdd(items){
   if (added) flash(`Added ${plural(added, "song")}`, "to the Format Manager");
   if (bad.length){
     sheet(`<div class="sheet-h">${bad.length === 1 ? "1 file couldn’t be added" : `${bad.length.toLocaleString()} files couldn’t be added`}</div>
-      <div class="sheet-b"><p>These aren’t songs PodManager can read.</p>${rejectList(bad)}</div>
+      <div class="sheet-b"><p>These aren’t songs Classic iPod Manager can read.</p>${rejectList(bad)}</div>
       <div class="sheet-f"><button class="btn primary" data-ok>OK</button></div>`, (v, close) => { v.querySelector("[data-ok]").onclick = close; });
   }
 }
@@ -1857,6 +1976,7 @@ function fmCtx(x, y, items){
   m.onclick = e => { const d = e.target.closest("[data-i]"); if (!d) return; closeCtx(); items[+d.dataset.i][1](); };
 }
 function fmSelChanged(){
+  updateArtPane();
   fmRenderRows(true);
   fmRenderSide();
   const rb = $("#fmRemove"); if (rb) rb.disabled = !FM.sel.size || fmBusy();
@@ -1932,8 +2052,8 @@ function fmRenderSide(){
         <select class="selbox" id="fmFormat" aria-label="Format" ${busy ? "disabled" : ""}><optgroup label="Plays on an iPod">${fmts.filter(x => x.ipod).map(opt).join("")}</optgroup><optgroup label="For the computer only">${fmts.filter(x => !x.ipod).map(opt).join("")}</optgroup></select>
         <select class="selbox" id="fmQuality" aria-label="${f.lossless ? "Quality" : "Bit rate"}" ${busy || f.qualities.length < 2 ? "disabled" : ""}>${f.qualities.map(x => `<option value="${x.id}" ${x.id === q ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>
       </div>
-      ${f.builtin ? `<div class="enc-line ok">Written by PodManager – no encoder needed${f.id === "wav" || f.id === "aiff" ? ". " + esc(f.label) + " files can’t hold details or artwork" : ""}.</div>`
-        : st.active ? `<div class="enc-line ok">Encoder: <b>${esc(st.active)}</b> · <button class="linkbtn" data-open="${f.id}">Show folder</button></div>`
+      ${f.builtin ? `<div class="enc-line ok">Written by Classic iPod Manager – no encoder needed${f.id === "wav" || f.id === "aiff" ? ". " + esc(f.label) + " files can’t hold details or artwork" : ""}.</div>`
+        : st.active ? `<div class="enc-line ok">Encoder: <b>${esc(st.active)}</b>${st.from ? ` (from the ${esc(st.from)} folder)` : ""} · <button class="linkbtn" data-open="${st.from ? (FM.encoders.encoders.find(x => x.label === st.from) || {}).id || f.id : f.id}">Show folder</button></div>`
         : `<div class="enc-line bad">No ${esc(f.label)} encoder found. Put ${esc(f.hint)} in the <button class="linkbtn" data-open="${f.id}">${esc((st.folder || "").split(/[\\/]/).pop() || f.label)} folder</button> or choose one in <button class="linkbtn" data-opts>Options</button>.</div>`}
       <label class="check" ${canAdd ? "" : `title="${f.ipod ? "Connect an iPod to add songs to it" : esc(f.label) + " can’t play on an iPod"}"`}><input type="checkbox" id="fmAddIPod" ${FM.addToIPod && canAdd ? "checked" : ""} ${canAdd && !busy ? "" : "disabled"}>Add converted computer songs to the iPod</label>
       <p class="fm-help">${fromIPod ? (f.ipod ? "iPod songs are backed up to <button class=\"linkbtn\" data-open=\"originals\">iPod Originals</button>, then replaced on the iPod. " : `${esc(f.label)} can’t play on an iPod, so iPod songs stay as they are. `) : ""}Copies go to <button class="linkbtn" data-open="converted">Converted Music</button>.</p>`;
@@ -1988,6 +2108,7 @@ function fmRefreshCounts(){
 }
 function fmSetArt(items, art){
   for (const it of items) it.art = art;
+  updateArtPane();
   fmPaintArt(items); fmRenderRows(true); fmRefreshCounts();
 }
 async function fmPaintArt(sel){
@@ -2097,9 +2218,13 @@ async function fmLoadEncoders(){
 function jobSummary(r){
   const n = r.ok;
   switch (r.job){
-    case "add": return [n ? `Added ${plural(n, "song")}` : "No songs added", r.skipped ? `${r.skipped} already on the iPod` : ""];
+    case "add": {
+      const v = r.videos || 0, songs = n - v;
+      const what = [songs ? plural(songs, "song") : "", v ? plural(v, "video") : ""].filter(Boolean).join(" and ");
+      return [n ? `Added ${what}` : "Nothing added", r.converted ? `${plural(r.converted, "video")} converted for the iPod` : r.skipped ? `${r.skipped} already on the iPod` : ""];
+    }
     case "remove": return [`Removed ${plural(n, "song")}`, ""];
-    case "update": return [n === 1 ? "Song updated" : `Updated ${plural(n, "song")}`, ""];
+    case "update": return [n === 1 ? "Info updated" : `Updated ${plural(n, "item")}`, ""];
     case "export": return [`Copied ${plural(n, "song")}`, "to your computer"];
     case "convert": {
       const added = (r.notes || []).map(x => /^Added (\d+) converted/.exec(x)).find(Boolean);
@@ -2124,6 +2249,7 @@ async function onEvent(e){
     if (r.error) alertSheet("Something went wrong", r.error + (r.ok ? ` (${plural(r.ok, "song")} finished before this happened.)` : ""));
     const [a, b] = jobSummary(r);
     flash(r.cancelled ? a + " (stopped)" : a, b);
+    if (r.job === "convert" || r.job === "retag" || r.job === "update") resetArtPane();
     if (r.job === "convert" || r.job === "retag") fmApplyOutcomes(r);
     if (r.job === "convert" || r.job === "retag" || r.job === "add") fmLoadEncoders();
     const issues = r.errors || [], notes = (r.notes || []).filter(x => !/already on the iPod/.test(x) && !/^Converted copies are in/.test(x) && !/^Added \d+ converted/.test(x));
@@ -2176,13 +2302,14 @@ function renderStats(){
     const list = S.listDirty ? buildList() : S.list;
     const ms = list.reduce((s, t) => s + (t.lengthMs||0), 0), b = list.reduce((s, t) => s + (t.size||0), 0);
     const selN = S.sel.size;
-    st.textContent = `${plural(list.length, "song")}, ${fmtTotal(ms)}, ${fmtBytes(b)}` + (selN > 1 ? ` — ${selN.toLocaleString()} selected` : "");
+    const word = S.view === "videos" ? "video" : S.view.startsWith("pl:") ? "item" : "song";
+    st.textContent = `${plural(list.length, word)}, ${fmtTotal(ms)}, ${fmtBytes(b)}` + (selN > 1 ? ` — ${selN.toLocaleString()} selected` : "");
   }
-  const c = capParts(S.lib.device, S.lib.musicBytes);
+  const c = capParts(S.lib.device, S.lib.musicBytes, S.lib.videoBytes);
   const pctFree = c.total ? Math.round(c.free / c.total * 100) : 0;
-  const tip = `${fmtBytes(c.free)} free of ${fmtBytes(c.total)} (${pctFree}% free) · Audio ${fmtBytes(c.audio)} · Other ${fmtBytes(c.other)}`;
+  const tip = `${fmtBytes(c.free)} free of ${fmtBytes(c.total)} (${pctFree}% free) · Audio ${fmtBytes(c.audio)}${c.video ? ` · Video ${fmtBytes(c.video)}` : ""} · Other ${fmtBytes(c.other)}`;
   mc.title = tip;
-  mc.innerHTML = `<div class="minibar" role="img" aria-label="${esc(tip)}"><i class="a" style="width:${c.pa}%"></i><i class="o" style="width:${c.po}%"></i></div>
+  mc.innerHTML = `<div class="minibar" role="img" aria-label="${esc(tip)}"><i class="a" style="width:${c.pa}%"></i><i class="v" style="width:${c.pv}%"></i><i class="o" style="width:${c.po}%"></i></div>
     <span class="captext"><b>${esc(fmtBytes(c.free))}</b> free of ${esc(fmtBytes(c.total))}</span>`;
 }
 function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); renderStats(); updateButtons(); }
@@ -2190,7 +2317,7 @@ function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); 
 /* ------------------------------------------------------------------ toolbar & keys */
 $("#bOptions").onclick = () => openOptions();
 $("#bFormats").onclick = () => { if (S.view !== "fm") setView("fm"); };
-$("#bAdd").onclick = addSongs; $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
+$("#bAdd").onclick = () => S.view === "videos" ? addVideos() : addSongs(); $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
 $("#bBrowse").onclick = () => { if (S.view === "fm"){ setView("music"); if (S.browser) return; } S.browser = !S.browser; store.set("browser", S.browser); S.bsel = {genre:null, artist:null, album:null}; S.listDirty = true; if (S.view === "summary") S.view = "music"; renderAll(); };
 let searchT;
 $("#search").addEventListener("input", e => {
@@ -2212,7 +2339,7 @@ addEventListener("keydown", e => {
   if (sheetStack.length) return;
   if (e.ctrlKey && k === ","){ e.preventDefault(); openOptions(); }
   if (e.ctrlKey && k === "f"){ e.preventDefault(); $("#search").focus(); $("#search").select(); }
-  if (e.ctrlKey && k === "o"){ e.preventDefault(); addSongs(); }
+  if (e.ctrlKey && k === "o"){ e.preventDefault(); S.view === "videos" ? addVideos() : addSongs(); }
   if (e.ctrlKey && k === "i"){ e.preventDefault(); if (S.view !== "fm") openInfo(); }
   if (e.ctrlKey && k === "m"){ e.preventDefault(); if (S.view !== "fm") setView("fm"); }
   if (e.ctrlKey && k === "b"){ e.preventDefault(); $("#bBrowse").click(); }

@@ -2,14 +2,14 @@
 
 package main
 
-// Dragging songs out of PodManager into Explorer.
+// Dragging songs out of Classic iPod Manager into Explorer.
 //
 // The songs are offered as "virtual files" (FileGroupDescriptorW +
 // FileContents): Explorer names them "Artist - Title.mp3" and reads each one
 // through a stream opened on the file on the iPod, so nothing is staged on
 // disk first. The data object also supports asynchronous transfers, so the
 // copy runs on Explorer's side with its own progress window while
-// PodManager stays responsive.
+// Classic iPod Manager stays responsive.
 
 import (
 	"sync"

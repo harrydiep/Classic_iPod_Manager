@@ -36,7 +36,7 @@ type ErrNoDecoder struct {
 }
 
 func (e ErrNoDecoder) Error() string {
-	return fmt.Sprintf("PodManager can't read %s files by itself – put ffmpeg.exe in %s", e.Label, e.Dir)
+	return fmt.Sprintf("Classic iPod Manager can't read %s files by itself – put ffmpeg.exe in %s", e.Label, e.Dir)
 }
 
 // Plan is what a conversion will do, for showing before it starts.

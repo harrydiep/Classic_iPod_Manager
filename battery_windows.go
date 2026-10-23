@@ -406,7 +406,7 @@ func (p *winPlatform) BatteryReport(serial string) (iap.Battery, string, error) 
 	var sb strings.Builder
 	w := func(line string) { sb.WriteString(line + "\n") }
 	wf := func(format string, a ...interface{}) { w(fmt.Sprintf(format, a...)) }
-	wf("PodManager %s battery report, %s", app.Version, time.Now().Format("2006-01-02 15:04:05"))
+	wf("Classic iPod Manager %s battery report, %s", app.Version, time.Now().Format("2006-01-02 15:04:05"))
 	if serial == "" {
 		w("iPod FireWire GUID: not found in SysInfo")
 	} else {

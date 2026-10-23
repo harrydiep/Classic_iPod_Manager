@@ -2,7 +2,7 @@
 // ask an iPod for its battery level and charging state.
 //
 // iPods from the 5th generation on expose a USB HID interface next to the
-// disk. Car stereos and docks use it to carry iAP packets; PodManager uses
+// disk. Car stereos and docks use it to carry iAP packets; Classic iPod Manager uses
 // it the same way, identifying itself as a "display remote" (lingo 3) and
 // sending GetPowerBatteryState. Older firmware that doesn't know that
 // command is asked with GetiPodStateInfo instead.

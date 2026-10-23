@@ -257,7 +257,8 @@ func TestStatuses(t *testing.T) {
 	if s := byID["mp3"]; !s.Exists || len(s.Tools) != 2 || s.Active != "ffmpeg" {
 		t.Fatalf("mp3 status %+v", s)
 	}
-	if s := byID["aac"]; s.Active != "" || !s.Exists {
+	// AAC has nothing of its own, so it uses the FFmpeg from the MP3 folder
+	if s := byID["aac"]; s.Active != "ffmpeg" || s.From != "MP3" || !s.Exists {
 		t.Fatalf("aac status %+v", s)
 	}
 	if s := byID["wav"]; s.Active != "Built in" {
@@ -273,5 +274,64 @@ func TestStatuses(t *testing.T) {
 	cfg.Folders = map[string]string{"flac": "/opt/flac"}
 	if d := cfg.Dir("flac"); d != "/opt/flac" {
 		t.Fatalf("absolute dir %s", d)
+	}
+}
+
+// A multi-format program in one folder covers formats whose own folder is
+// empty; a program in a format's own folder still wins.
+func TestBorrowedEncoders(t *testing.T) {
+	need(t, "ffmpeg")
+	dir := t.TempDir()
+	cfg := Config{Main: dir}
+	cfg.MakeFolders()
+	link(t, filepath.Join(dir, "Encoders", "AAC"), "ffmpeg")
+	link(t, filepath.Join(dir, "Encoders", "MP3"), "lame")
+	for _, id := range []string{"alac", "flac", "vorbis", "aac", "mp3"} {
+		tool, err := cfg.Encoder(id)
+		if err != nil {
+			t.Fatalf("%s: %v", id, err)
+		}
+		want, from := "ffmpeg", "AAC"
+		switch id {
+		case "aac":
+			from = ""
+		case "mp3":
+			want, from = "lame", ""
+		}
+		if tool.Name != want || tool.From != from {
+			t.Fatalf("%s: got %s from %q", id, tool.Name, tool.From)
+		}
+	}
+	st := map[string]Status{}
+	for _, s := range cfg.Statuses() {
+		st[s.ID] = s
+	}
+	if s := st["flac"]; s.Active != "ffmpeg" || s.From != "AAC" || len(s.Tools) != 0 {
+		t.Fatalf("flac status %+v", s)
+	}
+	if s := st["decoder"]; s.Active == "" {
+		t.Fatalf("decoder status %+v", s)
+	}
+	// and it converts with the borrowed program
+	src := filepath.Join(dir, "in.wav")
+	tone(t, src, "-c:a", "pcm_s16le")
+	info, _ := media.Inspect(src)
+	out := filepath.Join(dir, "out.flac")
+	if err := cfg.Run(context.Background(), Job{Src: src, Info: info, Format: "flac", Out: out, WorkDir: dir}); err != nil {
+		t.Fatal(err)
+	}
+	if si, err := media.Inspect(out); err != nil || si.Format != "flac" {
+		t.Fatalf("flac via borrowed ffmpeg: %+v %v", si, err)
+	}
+	// qaac covers Apple Lossless too (only checked for lookup: it's Windows-only)
+	dir2 := t.TempDir()
+	cfg2 := Config{Main: dir2}
+	cfg2.MakeFolders()
+	os.WriteFile(filepath.Join(dir2, "Encoders", "AAC", "qaac64"), []byte("#!/bin/sh\n"), 0o755)
+	if tool, err := cfg2.Encoder("alac"); err != nil || tool.Kind != KindQaac || tool.From != "AAC" {
+		t.Fatalf("qaac for alac: %+v %v", tool, err)
+	}
+	if _, err := cfg2.Encoder("mp3"); err == nil {
+		t.Fatal("qaac can't write MP3")
 	}
 }

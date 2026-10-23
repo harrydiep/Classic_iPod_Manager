@@ -15,6 +15,8 @@ import (
 type DropCheck struct {
 	Accepted []string   `json:"accepted"` // files and folders that will be copied
 	Songs    int        `json:"songs"`    // songs found (including inside folders)
+	Videos   int        `json:"videos"`   // videos found
+	Convert  int        `json:"convert"`  // videos that will be converted with FFmpeg first
 	Rejected []JobError `json:"rejected"` // files the iPod can't play
 	Reason   string     `json:"reason,omitempty"`
 	Paths    []string   `json:"paths"` // everything that was dropped
@@ -49,6 +51,7 @@ func (a *App) CheckPaths(paths []string) *DropCheck {
 		}
 		if st.IsDir() {
 			ok, bad := 0, 0
+			ff := a.encoderConfig().FFmpeg() != nil
 			filepath.WalkDir(p, func(path string, e fs.DirEntry, err error) error {
 				if err != nil || strings.HasPrefix(e.Name(), ".") {
 					if e != nil && e.IsDir() && path != p {
@@ -56,7 +59,23 @@ func (a *App) CheckPaths(paths []string) *DropCheck {
 					}
 					return nil
 				}
-				if e.IsDir() || !media.KnownAudioExt(path) {
+				if e.IsDir() {
+					return nil
+				}
+				if media.VideoExt(path) && (!media.KnownAudioExt(path) || media.IsVideo(path)) {
+					if v := a.checkVideo(path, ff); v.Reason != "" {
+						bad++
+						res.Rejected = append(res.Rejected, JobError{path, v.Reason})
+					} else {
+						ok++
+						res.Videos++
+						if v.convert {
+							res.Convert++
+						}
+					}
+					return nil
+				}
+				if !media.KnownAudioExt(path) {
 					return nil
 				}
 				if media.SupportedExt(path) {
@@ -72,6 +91,20 @@ func (a *App) CheckPaths(paths []string) *DropCheck {
 				res.Songs += ok
 			} else if bad == 0 {
 				res.Rejected = append(res.Rejected, JobError{p, "folder contains no songs"})
+			}
+			continue
+		}
+		if media.IsVideo(p) {
+			v := a.checkVideo(p, a.encoderConfig().FFmpeg() != nil)
+			if v.Reason != "" {
+				res.Rejected = append(res.Rejected, JobError{p, v.Reason})
+				continue
+			}
+			res.Accepted = append(res.Accepted, p)
+			res.Songs++
+			res.Videos++
+			if v.convert {
+				res.Convert++
 			}
 			continue
 		}
@@ -153,4 +186,25 @@ func (a *App) DragOut(ids []uint32) error {
 		return errors.New("the selected songs couldn't be found on the iPod")
 	}
 	return a.plat.DragOut(files)
+}
+
+type videoCheck struct {
+	convert bool
+	Reason  string
+}
+
+// checkVideo decides whether a video can go on the iPod: as it is, after
+// converting it with FFmpeg, or not at all (Reason says why).
+func (a *App) checkVideo(path string, haveFFmpeg bool) videoCheck {
+	vi, err := media.ProbeVideo(path)
+	if err != nil {
+		return videoCheck{Reason: "couldn't be read: " + err.Error()}
+	}
+	if vi.Playable {
+		return videoCheck{}
+	}
+	if haveFFmpeg {
+		return videoCheck{convert: true}
+	}
+	return videoCheck{Reason: vi.Reason + " – put ffmpeg.exe in " + a.encoderConfig().Dir("decoder") + " to convert it"}
 }

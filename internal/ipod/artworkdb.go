@@ -65,7 +65,7 @@ const artMinID = 100
 func (d *Device) artDir() string    { return filepath.Join(d.Root, "iPod_Control", "Artwork") }
 func (d *Device) artDBPath() string { return filepath.Join(d.artDir(), "ArtworkDB") }
 
-// canWriteArtwork reports whether PodManager knows this iPod's cover formats.
+// canWriteArtwork reports whether Classic iPod Manager knows this iPod's cover formats.
 func (d *Device) CanWriteArtwork() bool { return d.canWriteArtwork() }
 
 func (d *Device) canWriteArtwork() bool {
@@ -415,7 +415,7 @@ func (d *Device) SetArtwork(t *itdb.Track, picture []byte) error {
 		return errors.New(d.ReadOnly)
 	}
 	if !d.canWriteArtwork() {
-		return errors.New("PodManager can only write album art for the iPod 5th generation")
+		return errors.New("Classic iPod Manager can only write album art for the iPod 5th generation")
 	}
 	img, _, err := image.Decode(bytes.NewReader(picture))
 	if err != nil {

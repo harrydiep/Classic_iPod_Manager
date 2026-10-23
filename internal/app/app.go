@@ -1,4 +1,4 @@
-// Package app is PodManager's backend: the operations the UI can invoke and
+// Package app is Classic iPod Manager's backend: the operations the UI can invoke and
 // the long-running jobs (copying, deleting, retagging) with progress events.
 package app
 
@@ -23,7 +23,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.5.0"
+const Version = "1.6.0"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -76,6 +76,8 @@ type JobResult struct {
 	Elapsed   float64     `json:"elapsed"`
 	Error     string      `json:"error,omitempty"` // fatal error
 	FM        []FMOutcome `json:"fm,omitempty"`    // Format Manager: what happened to each song
+	Videos    int         `json:"videos"`          // videos added
+	Converted int         `json:"converted"`       // videos converted while adding
 }
 
 // JobError is one per-file failure.
@@ -126,6 +128,7 @@ type TrackView struct {
 	LastPlayed  int64  `json:"lastPlayed,omitempty"`
 	Path        string `json:"path,omitempty"`
 	MediaType   uint32 `json:"mediaType,omitempty"`
+	Video       bool   `json:"video,omitempty"`
 }
 
 // PlaylistView is a playlist as shown in the UI.
@@ -143,6 +146,7 @@ type Library struct {
 	Playlists []PlaylistView `json:"playlists"`
 	ReadOnly  string         `json:"readOnly"`
 	Music     uint64         `json:"musicBytes"`
+	Video     uint64         `json:"videoBytes"`
 }
 
 // App holds the backend state.
@@ -202,6 +206,9 @@ func (a *App) Methods() map[string]interface{} {
 		"fmImagePreview": a.FMImagePreview,
 		"fmArtwork":      a.FMArtwork,
 		"fmRun":          a.FMRun,
+		"addVideos":      a.AddVideos,
+		"addFolderOf":    a.AddFolderOf,
+		"addMedia":       a.AddMedia,
 		"revealFile":     a.RevealFile,
 		"batteryReport":  a.BatteryReport,
 		"setScale":       a.SetScale,
@@ -341,7 +348,7 @@ func (a *App) Library() (*Library, error) {
 	info := a.deviceInfo(d.Root)
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	lib := &Library{Device: info, ReadOnly: d.ReadOnly, Music: d.MusicBytes(), Tracks: make([]TrackView, 0, len(d.DB.Tracks)), Playlists: []PlaylistView{}}
+	lib := &Library{Device: info, ReadOnly: d.ReadOnly, Music: d.MusicBytes(), Video: d.VideoBytes(), Tracks: make([]TrackView, 0, len(d.DB.Tracks)), Playlists: []PlaylistView{}}
 	for _, t := range d.DB.Tracks {
 		lib.Tracks = append(lib.Tracks, view(t))
 	}
@@ -371,7 +378,7 @@ func view(t *itdb.Track) TrackView {
 		Genre: t.Genre(), Composer: t.Composer(), Comment: t.Comment(), Grouping: t.Grouping(),
 		Year: t.Year(), TrackNumber: t.TrackNumber(), TrackCount: t.TrackCount(), DiscNumber: t.DiscNumber(),
 		DiscCount: t.DiscCount(), BPM: t.BPM(), Compilation: t.Compilation(), Rating: t.Rating(),
-		Plays: t.PlayCount(), Skips: t.SkipCount(), LengthMs: t.LengthMs(), Size: t.Size(), Bitrate: t.Bitrate(),
+		Video: t.IsVideo(), Plays: t.PlayCount(), Skips: t.SkipCount(), LengthMs: t.LengthMs(), Size: t.Size(), Bitrate: t.Bitrate(),
 		SampleRate: t.SampleRate(), Kind: t.Kind(), DateAdded: unixOf(t.DateAdded()), LastPlayed: unixOf(t.LastPlayed()),
 		Path: t.RelPath(), MediaType: t.MediaType(),
 	}
@@ -538,9 +545,14 @@ func normKey(title, artist, album string) dupKey {
 	return dupKey{f(title), f(artist), f(album)}
 }
 
-// AddPaths copies the given files / folders to the iPod.
-func (a *App) AddPaths(paths []string) error {
-	return a.startJob("add", false, func(d *ipod.Device, res *JobResult) error {
+// AddPaths copies the given files / folders (songs and videos) to the iPod.
+func (a *App) AddPaths(paths []string) error { return a.AddMedia(paths, "") }
+
+// AddMedia copies files / folders to the iPod. kind limits what is picked
+// up inside folders: "music", "video" or "" for both. Files named directly
+// are always added.
+func (a *App) AddMedia(paths []string, kind string) error {
+	return a.startTask("add", false, true, func(ctx context.Context, d *ipod.Device, res *JobResult) error {
 		a.progress("add", 0, 0, "Looking for songs…")
 		var files []string
 		for _, p := range paths {
@@ -567,7 +579,15 @@ func (a *App) AddPaths(paths []string) error {
 					}
 					return nil
 				}
-				if !e.IsDir() && media.KnownAudioExt(path) {
+				if e.IsDir() {
+					return nil
+				}
+				// .mp4 can be a song or a video: look inside
+				isVid := media.VideoExt(path) && (!media.KnownAudioExt(path) || media.IsVideo(path))
+				switch {
+				case isVid && kind != "music":
+					files = append(files, path)
+				case !isVid && media.KnownAudioExt(path) && kind != "video":
 					files = append(files, path)
 				}
 				return nil
@@ -575,18 +595,49 @@ func (a *App) AddPaths(paths []string) error {
 		}
 		sort.Strings(files)
 		if len(files) == 0 {
-			res.Notes = append(res.Notes, "No songs were found.")
+			if kind == "video" {
+				res.Notes = append(res.Notes, "No videos were found.")
+			} else {
+				res.Notes = append(res.Notes, "No songs were found.")
+			}
 			return nil
 		}
-		return a.addFiles(d, "add", files, res)
+		return a.addFiles(ctx, d, "add", files, res)
 	})
+}
+
+// AddVideos lets the user pick videos and copies them to the iPod.
+func (a *App) AddVideos() (bool, error) {
+	paths, err := a.plat.PickAny("Add Videos to iPod", []FileFilter{
+		{"Videos", "*.m4v;*.mp4;*.mov;*.avi;*.mkv;*.wmv;*.webm;*.flv;*.mpg;*.mpeg;*.m2ts;*.mts;*.ts;*.3gp;*.divx;*.vob;*.ogv;*.asf"},
+		{"All files", "*.*"},
+	}, true)
+	if err != nil || len(paths) == 0 {
+		return false, err
+	}
+	return true, a.AddMedia(paths, "video")
+}
+
+// AddFolderOf lets the user pick a folder and adds its songs ("music") or
+// videos ("video").
+func (a *App) AddFolderOf(kind string) (bool, error) {
+	title := "Choose a folder of music to add to your iPod"
+	if kind == "video" {
+		title = "Choose a folder of videos to add to your iPod"
+	}
+	dir, err := a.plat.PickFolder(title)
+	if err != nil || dir == "" {
+		return false, err
+	}
+	return true, a.AddMedia([]string{dir}, kind)
 }
 
 // addFiles copies song files to the iPod and adds them to its database,
 // skipping songs that are already there. Covers embedded in the files are
 // added to the iPod's artwork database.
-func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResult) error {
+func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []string, res *JobResult) error {
 	{
+		videos, converted := 0, 0
 		existing := map[dupKey][]uint32{}
 		a.withDB(func() {
 			for _, t := range d.DB.Tracks {
@@ -602,10 +653,25 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 				break
 			}
 			a.progress(job, i, len(files), filepath.Base(f))
-			info, err := media.Probe(f)
-			if err != nil {
-				res.Errors = append(res.Errors, JobError{f, err.Error()})
-				continue
+			src := f // the file copied to the iPod
+			var info *media.Info
+			var video *media.VideoInfo
+			if media.IsVideo(f) {
+				vi, err := media.ProbeVideo(f)
+				if err != nil {
+					res.Errors = append(res.Errors, JobError{f, err.Error()})
+					continue
+				}
+				if vi.LengthMs == 0 {
+					vi.LengthMs = a.encoderConfig().VideoLength(ctx, f)
+				}
+				video, info = vi, videoInfo(vi)
+			} else {
+				var err error
+				if info, err = media.Probe(f); err != nil {
+					res.Errors = append(res.Errors, JobError{f, err.Error()})
+					continue
+				}
 			}
 			k := normKey(info.Tags.Title, info.Tags.Artist, info.Tags.Album)
 			dup := false
@@ -619,6 +685,24 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 				res.Skipped++
 				continue
 			}
+			if video != nil && !video.Playable {
+				out, err := a.convertVideo(ctx, f, video, job, i, len(files))
+				if err != nil {
+					if ctx.Err() != nil {
+						break
+					}
+					res.Errors = append(res.Errors, JobError{f, err.Error()})
+					continue
+				}
+				cv, err := media.ProbeVideo(out)
+				if err != nil {
+					res.Errors = append(res.Errors, JobError{f, err.Error()})
+					continue
+				}
+				cv.Tags = video.Tags
+				src, video, info = out, cv, videoInfo(cv)
+				converted++
+			}
 			if free > 0 && uint64(info.Size)+reserve > free {
 				res.Errors = append(res.Errors, JobError{f, "the iPod is full"})
 				res.Notes = append(res.Notes, "Stopped because the iPod ran out of space.")
@@ -628,7 +712,7 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 			if err != nil {
 				return err
 			}
-			if err := copyFile(f, abs); err != nil {
+			if err := copyFile(src, abs); err != nil {
 				os.Remove(abs)
 				res.Errors = append(res.Errors, JobError{f, "copy failed: " + err.Error()})
 				if errors.Is(err, fs.ErrPermission) || isDiskFull(err) {
@@ -644,6 +728,10 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 			if info.Audiobook {
 				mt = 8
 			}
+			if video != nil {
+				mt = itdb.MediaMovie
+				videos++
+			}
 			var nt *itdb.Track
 			a.withDB(func() {
 				nt = d.DB.NewTrack(itdb.NewTrackInfo{
@@ -654,10 +742,19 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 					Composer: tg.Composer, Comment: tg.Comment, Grouping: tg.Grouping,
 					TrackNumber: uint32(clampU(tg.Track)), TrackCount: uint32(clampU(tg.TrackTotal)),
 					DiscNumber: uint32(clampU(tg.Disc)), DiscCount: uint32(clampU(tg.DiscTotal)), Year: uint32(clampU(tg.Year)),
-					BPM: uint16(clampU(tg.BPM)), Compilation: tg.Compilation,
+					BPM: uint16(clampU(tg.BPM)), Compilation: tg.Compilation, Movie: video != nil,
 				})
 			})
-			a.addCover(d, nt, f, res)
+			a.addCover(d, nt, src, res)
+			if video != nil && d.CanWriteArtwork() {
+				var has bool
+				a.withDB(func() { has = nt.HasArtwork() })
+				if !has {
+					if jpg := a.encoderConfig().VideoThumbnail(ctx, src, info.LengthMs); jpg != nil {
+						a.withDB(func() { d.SetArtwork(nt, jpg) })
+					}
+				}
+			}
 			existing[k] = append(existing[k], info.LengthMs)
 			res.OK++
 			sinceSave++
@@ -677,10 +774,72 @@ func (a *App) addFiles(d *ipod.Device, job string, files []string, res *JobResul
 			return fmt.Errorf("could not update the iPod database: %w", err)
 		}
 		if res.Skipped > 0 {
-			res.Notes = append(res.Notes, fmt.Sprintf("%d song(s) were already on the iPod and were skipped.", res.Skipped))
+			res.Notes = append(res.Notes, fmt.Sprintf("%d item(s) were already on the iPod and were skipped.", res.Skipped))
+		}
+		res.Videos, res.Converted = videos, converted
+		if converted > 0 {
+			where := ""
+			if a.mainDir != "" {
+				where = " Copies are in " + filepath.Join(a.mainDir, ConvertedVideosFolder) + "."
+			}
+			res.Notes = append(res.Notes, fmt.Sprintf("%s converted for the iPod with FFmpeg.%s", plural(converted, "video was", "videos were"), where))
 		}
 		return nil
 	}
+}
+
+func plural(n int, one string, many ...string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	if len(many) > 0 {
+		return fmt.Sprintf("%d %s", n, many[0])
+	}
+	return fmt.Sprintf("%d %ss", n, one)
+}
+
+// videoInfo describes a video for the iPod database.
+func videoInfo(vi *media.VideoInfo) *media.Info {
+	sr := vi.SampleRate
+	if sr == 0 {
+		sr = 44100
+	}
+	return &media.Info{Format: "video", FileTypeCode: "M4V ", Kind: "MPEG-4 video file", Ext: ".m4v",
+		LengthMs: vi.LengthMs, Bitrate: vi.Bitrate, SampleRate: sr, Size: vi.Size, Tags: vi.Tags}
+}
+
+// convertVideo makes an iPod-compatible copy of a video with FFmpeg in
+// the main folder's Converted Videos folder, reporting progress.
+func (a *App) convertVideo(ctx context.Context, src string, vi *media.VideoInfo, job string, n, total int) (string, error) {
+	base := filepath.Join(a.mainDir, ConvertedVideosFolder)
+	if a.mainDir == "" {
+		base = filepath.Join(os.TempDir(), "ClassiciPodManager-videos")
+	}
+	if err := os.MkdirAll(base, 0o755); err != nil {
+		return "", err
+	}
+	var pa pathAllocator
+	out := pa.videoPath(base, vi.Tags)
+	verb := "Converting"
+	if vi.Remux {
+		verb = "Re-packaging"
+	}
+	name := firstNonEmpty(vi.Tags.Title, filepath.Base(src))
+	last := -1
+	a.progress(job, n, total, fmt.Sprintf("%s %s", verb, name))
+	err := a.encoderConfig().ConvertVideo(ctx, src, vi, out, func(f float64) {
+		if pct := int(f * 100); pct != last {
+			last = pct
+			a.progress(job, n, total, fmt.Sprintf("%s %s – %d%%", verb, name, pct))
+		}
+	})
+	if err != nil {
+		return "", err
+	}
+	if err := media.WriteTags(out, vi.Tags); err != nil && !media.IsNoTagSupport(err) {
+		return "", fmt.Errorf("couldn't tag the converted video: %w", err)
+	}
+	return out, nil
 }
 
 // addCover puts a song file's embedded cover into the iPod's artwork
@@ -784,6 +943,7 @@ type Patch struct {
 	BPM         *int    `json:"bpm"`
 	Rating      *int    `json:"rating"`
 	Compilation *bool   `json:"compilation"`
+	MediaType   *int    `json:"mediaType"` // videos: 2 movie, 32 music video, 64 TV show
 }
 
 func (p *Patch) touchesFile() bool {
@@ -838,6 +998,16 @@ func applyPatch(t *itdb.Track, p *Patch) {
 	}
 	if p.Compilation != nil {
 		t.SetCompilation(*p.Compilation)
+	}
+	if p.MediaType != nil && t.IsVideo() {
+		switch mt := uint32(*p.MediaType); mt {
+		case itdb.MediaMovie, itdb.MediaMusicVideo, itdb.MediaTVShow:
+			t.SetMediaType(mt)
+		}
+	}
+	if t.MediaType()&itdb.MediaTVShow != 0 {
+		// the iPod's TV Shows menu groups episodes by show name
+		t.SetStr(itdb.MhodTVShow, firstNonEmpty(t.Album(), t.Title()))
 	}
 	t.SetTimeModified(itdb.MacTime(time.Now()))
 }

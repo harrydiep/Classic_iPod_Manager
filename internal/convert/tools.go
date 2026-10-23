@@ -1,6 +1,6 @@
 // Package convert turns songs from one audio format into another using
-// encoder programs the user puts into folders next to PodManager (LAME,
-// qaac, FLAC, FFmpeg and so on). WAV and AIFF are written by PodManager
+// encoder programs the user puts into folders next to Classic iPod Manager (LAME,
+// qaac, FLAC, FFmpeg and so on). WAV and AIFF are written by Classic iPod Manager
 // itself.
 package convert
 
@@ -21,7 +21,7 @@ type Format struct {
 	Ext       string    `json:"ext"`
 	IPod      bool      `json:"ipod"`     // an iPod classic plays it
 	Lossless  bool      `json:"lossless"` // no quality is lost
-	Builtin   bool      `json:"builtin"`  // written by PodManager, no encoder needed
+	Builtin   bool      `json:"builtin"`  // written by Classic iPod Manager, no encoder needed
 	Tags      bool      `json:"tags"`     // the file can carry tags and artwork
 	Folder    string    `json:"defaultFolder"`
 	Qualities []Quality `json:"qualities"`
@@ -72,7 +72,7 @@ var Formats = []Format{
 }
 
 // DecoderFolder is where a general decoder (FFmpeg) goes by default. It is
-// used to read source formats PodManager can't read itself.
+// used to read source formats Classic iPod Manager can't read itself.
 const DecoderFolder = `Encoders\Decoder`
 
 // FormatByID returns a format.
@@ -118,6 +118,7 @@ type Tool struct {
 	Name string `json:"name"` // file name, e.g. "lame.exe"
 	Kind string `json:"kind"`
 	Path string `json:"path"`
+	From string `json:"from,omitempty"` // borrowed from another format's folder
 }
 
 func toolKind(file string) string {
@@ -170,7 +171,7 @@ func FindTools(dir string) []Tool {
 
 // Config says where the encoders are.
 type Config struct {
-	Main    string            // PodManager's main folder
+	Main    string            // Classic iPod Manager's main folder
 	Folders map[string]string // format ID or "decoder" → folder (relative to Main, or absolute)
 	Choice  map[string]string // format ID → preferred program file name ("" = automatic)
 }
@@ -240,8 +241,59 @@ func (c Config) Encoder(id string) (*Tool, error) {
 			}
 		}
 	}
+	// Nothing in the format's own folder: borrow a program that handles
+	// several formats (FFmpeg, qaac) from another encoder folder.
+	if t := c.borrowed(id); t != nil {
+		return t, nil
+	}
 	return nil, ErrNoEncoder{f, c.Dir(id)}
 }
+
+// folderIDs lists every encoder folder: the formats', then the decoder's.
+func folderIDs() []string {
+	var ids []string
+	for _, f := range Formats {
+		if !f.Builtin {
+			ids = append(ids, f.ID)
+		}
+	}
+	return append(ids, "decoder")
+}
+
+// FolderLabel names a folder for people ("AAC", "Decoder").
+func FolderLabel(id string) string {
+	if f, ok := FormatByID(id); ok {
+		return f.Label
+	}
+	if id == "decoder" {
+		return "Decoder"
+	}
+	return id
+}
+
+// borrowed finds a program for format id in the other encoder folders.
+// Tool.From says which folder it came from.
+func (c Config) borrowed(id string) *Tool {
+	own := strings.ToLower(filepath.Clean(c.Dir(id)))
+	for _, k := range encoderKinds[id] {
+		for _, other := range folderIDs() {
+			if other == id || strings.ToLower(filepath.Clean(c.Dir(other))) == own {
+				continue
+			}
+			for _, t := range FindTools(c.Dir(other)) {
+				if t.Kind == k {
+					t := t
+					t.From = FolderLabel(other)
+					return &t
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// FFmpeg returns an FFmpeg from any encoder folder, or nil.
+func (c Config) FFmpeg() *Tool { return c.ffmpeg() }
 
 // ffmpeg returns an FFmpeg found in the decoder folder or any encoder folder.
 func (c Config) ffmpeg() *Tool {
@@ -313,6 +365,7 @@ type Status struct {
 	Tools    []Tool `json:"tools"` // programs found that fit
 	Choice   string `json:"choice"`
 	Active   string `json:"active"` // program that will be used ("" = none)
+	From     string `json:"from"`   // folder the program was borrowed from, if not its own
 	Builtin  bool   `json:"builtin"`
 	Hint     string `json:"hint"`
 	IPod     bool   `json:"ipod"`
@@ -345,7 +398,7 @@ func (c Config) Statuses() []Status {
 			}
 		}
 		if t, err := c.Encoder(f.ID); err == nil && t != nil {
-			s.Active = t.Name
+			s.Active, s.From = t.Name, t.From
 		}
 		out = append(out, s)
 	}
@@ -395,10 +448,10 @@ func (c Config) MakeFolders() error {
 		readme := filepath.Join(dir, "Put the encoder here.txt")
 		if _, err := os.Stat(readme); errors.Is(err, os.ErrNotExist) {
 			text := fmt.Sprintf("Put %s for %s in this folder (or in a folder inside it).\r\n"+
-				"PodManager finds it automatically. You can choose a different folder in Options > Encoders.\r\n", hint, label)
+				"Classic iPod Manager finds it automatically. You can choose a different folder in Options > Encoders.\r\n", hint, label)
 			if id == "decoder" {
 				text = "Put ffmpeg.exe in this folder (or in a folder inside it).\r\n" +
-					"PodManager uses it to read formats it can't read itself (FLAC, Ogg Vorbis, Opus, WMA and others)\r\n" +
+					"Classic iPod Manager uses it to read formats it can't read itself (FLAC, Ogg Vorbis, Opus, WMA and others)\r\n" +
 					"and to change sample rates. An ffmpeg.exe in any encoder folder works too.\r\n"
 			}
 			os.WriteFile(readme, []byte(text), 0o644)

@@ -145,9 +145,9 @@ func Open(root, backupDir string) (*Device, error) {
 	}
 	d.DB = db
 	if !d.Model.Supported {
-		d.ReadOnly = d.Model.Name + " (" + d.Model.Generation + ") protects its database with a checksum, so PodManager can only view it."
+		d.ReadOnly = d.Model.Name + " (" + d.Model.Generation + ") protects its database with a checksum, so Classic iPod Manager can only view it."
 	} else if hasChecksum(data) {
-		d.ReadOnly = "This iPod's database is protected with a checksum (newer iPod), so PodManager can only view it."
+		d.ReadOnly = "This iPod's database is protected with a checksum (newer iPod), so Classic iPod Manager can only view it."
 	}
 	if pc, err := os.ReadFile(filepath.Join(d.itunesDir(), "Play Counts")); err == nil {
 		if db.MergePlayCounts(pc) == nil {
@@ -374,7 +374,22 @@ func (d *Device) MusicBytes() uint64 {
 	var n uint64
 	if d.DB != nil {
 		for _, t := range d.DB.Tracks {
-			n += uint64(t.Size())
+			if !t.IsVideo() {
+				n += uint64(t.Size())
+			}
+		}
+	}
+	return n
+}
+
+// VideoBytes is the space taken by videos.
+func (d *Device) VideoBytes() uint64 {
+	var n uint64
+	if d.DB != nil {
+		for _, t := range d.DB.Tracks {
+			if t.IsVideo() {
+				n += uint64(t.Size())
+			}
 		}
 	}
 	return n

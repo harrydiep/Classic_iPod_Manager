@@ -122,7 +122,7 @@ func VorbisComments(t Tags) [][2]string {
 }
 
 func buildVorbisComment(old []byte, t Tags) []byte {
-	vendor := "PodManager"
+	vendor := "Classic iPod Manager"
 	var keep []string
 	if len(old) >= 8 {
 		le := binary.LittleEndian

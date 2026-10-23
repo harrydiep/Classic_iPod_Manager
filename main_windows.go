@@ -25,8 +25,10 @@ func main() {
 	if roaming == "" {
 		roaming = local
 	}
-	dataDir := filepath.Join(local, "PodManager")
-	backupDir := filepath.Join(roaming, "PodManager", "Backups")
+	// Settings and backups used to live in folders called "PodManager";
+	// move them over the first time the new name is used.
+	dataDir := migrateDir(filepath.Join(local, "PodManager"), filepath.Join(local, appName))
+	backupDir := filepath.Join(migrateDir(filepath.Join(roaming, "PodManager"), filepath.Join(roaming, appName)), "Backups")
 	os.MkdirAll(dataDir, 0o755)
 
 	plat := &winPlatform{}
@@ -49,7 +51,7 @@ func main() {
 		AutoFocus: true,
 		DataPath:  filepath.Join(dataDir, "WebView2"),
 		WindowOptions: webview2.WindowOptions{
-			Title:  "PodManager",
+			Title:  appName,
 			Width:  winW,
 			Height: winH,
 			IconId: 1,
@@ -57,9 +59,9 @@ func main() {
 		},
 	})
 	if w == nil {
-		messageBox("PodManager",
-			"PodManager needs the Microsoft Edge WebView2 Runtime, which is included with Windows 10 and 11.\n\n"+
-				"Please install it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and start PodManager again.", 0x10)
+		messageBox(appName,
+			appName+" needs the Microsoft Edge WebView2 Runtime, which is included with Windows 10 and 11.\n\n"+
+				"Please install it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and start "+appName+" again.", 0x10)
 		return
 	}
 	defer w.Destroy()
@@ -125,9 +127,9 @@ func main() {
 	close(stop)
 }
 
-// mainFolder is the folder PodManager.exe is in, where encoders and
+// mainFolder is the folder the exe is in, where encoders and
 // converted songs go. When that can't be written to (for example under
-// Program Files), %LOCALAPPDATA%\PodManager is used instead.
+// Program Files), %LOCALAPPDATA%\Classic iPod Manager is used instead.
 func mainFolder(fallback string) string {
 	exe, err := os.Executable()
 	if err == nil {
@@ -135,13 +137,29 @@ func mainFolder(fallback string) string {
 			exe = real
 		}
 		dir := filepath.Dir(exe)
-		if f, err := os.CreateTemp(dir, ".podmanager-write-test-*"); err == nil {
+		if f, err := os.CreateTemp(dir, ".ipodmanager-write-test-*"); err == nil {
 			f.Close()
 			os.Remove(f.Name())
 			return dir
 		}
 	}
 	return fallback
+}
+
+const appName = "Classic iPod Manager"
+
+// migrateDir returns newDir, first renaming oldDir to it when only the old
+// one exists. If the rename fails the old folder keeps being used.
+func migrateDir(oldDir, newDir string) string {
+	if _, err := os.Stat(newDir); err == nil {
+		return newDir
+	}
+	if st, err := os.Stat(oldDir); err == nil && st.IsDir() {
+		if err := os.Rename(oldDir, newDir); err != nil {
+			return oldDir
+		}
+	}
+	return newDir
 }
 
 const bridgeJS = `

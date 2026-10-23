@@ -32,6 +32,7 @@ const (
 	MhodComposer        = 12
 	MhodGrouping        = 13
 	MhodDescription     = 14
+	MhodTVShow          = 19
 	MhodAlbumArtist     = 22
 	MhodSortArtist      = 23
 	MhodSortTitle       = 27
@@ -208,6 +209,30 @@ func (t *Track) SkipCount() uint32       { return t.u32(0x9C) }
 func (t *Track) MediaType() uint32       { return t.u32(0xD0) }
 func (t *Track) HeaderLen() int          { return len(t.header) }
 
+// Media types (bit flags) used by the iPod's menus.
+const (
+	MediaAudio      = 0x01
+	MediaMovie      = 0x02
+	MediaPodcast    = 0x04
+	MediaAudiobook  = 0x08
+	MediaMusicVideo = 0x20
+	MediaTVShow     = 0x40
+)
+
+// IsVideo reports whether the track is a video of any kind.
+func (t *Track) IsVideo() bool {
+	return t.MediaType()&(MediaMovie|MediaMusicVideo|MediaTVShow) != 0 || t.u8(0xB1) != 0
+}
+
+// SetMediaType changes the kind of item (for videos: movie, music video or
+// TV show), keeping the movie flag consistent.
+func (t *Track) SetMediaType(mt uint32) {
+	t.setU32(0xD0, mt)
+	if mt&(MediaMovie|MediaMusicVideo|MediaTVShow) != 0 {
+		t.setU8(0xB1, 1)
+	}
+}
+
 // HasArtwork reports whether the iPod should show a cover for the track.
 func (t *Track) HasArtwork() bool { return t.u8(0xA4) == 1 && t.u16(0x7C) > 0 }
 
@@ -338,6 +363,7 @@ type NewTrackInfo struct {
 	TrackNumber, TrackCount, DiscNumber, DiscCount, Year                  uint32
 	BPM                                                                   uint16
 	Compilation                                                           bool
+	Movie                                                                 bool // a video (sets the movie flag)
 }
 
 // NewTrack creates and appends a track, assigning a fresh ID and DBID.
@@ -391,6 +417,9 @@ func (db *DB) NewTrack(info NewTrackInfo) *Track {
 		t.setU8(0xA5, 1) // skip when shuffling
 	}
 	t.setU64(0xA8, dbid)
+	if info.Movie {
+		t.setU8(0xB1, 1) // movie flag
+	}
 	t.setU8(0xB2, 2) // "not played" mark
 	t.setU64(0xBC, info.SampleCount)
 	mt := info.MediaType

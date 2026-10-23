@@ -24,7 +24,7 @@ import (
 
 // The Format Manager edits tags and covers of songs on the computer or the
 // iPod, and converts them between formats with the user's own encoders.
-// Everything it makes lives in PodManager's main folder:
+// Everything it makes lives in Classic iPod Manager's main folder:
 //
 //	Encoders\<format>\   encoder programs (folders can be changed in Options)
 //	Converted Music\Artist\Album\   a copy of every converted song
@@ -32,12 +32,13 @@ import (
 
 // Folder names inside the main folder.
 const (
-	ConvertedFolder = "Converted Music"
-	OriginalsFolder = "iPod Originals"
-	tempFolder      = "Temp"
+	ConvertedVideosFolder = "Converted Videos"
+	ConvertedFolder       = "Converted Music"
+	OriginalsFolder       = "iPod Originals"
+	tempFolder            = "Temp"
 )
 
-// SetMainFolder sets PodManager's main folder and creates its sub-folders.
+// SetMainFolder sets Classic iPod Manager's main folder and creates its sub-folders.
 func (a *App) SetMainFolder(dir string) {
 	a.mainDir = dir
 	if dir == "" {
@@ -46,6 +47,7 @@ func (a *App) SetMainFolder(dir string) {
 	a.encoderConfig().MakeFolders()
 	os.MkdirAll(filepath.Join(dir, ConvertedFolder), 0o755)
 	os.MkdirAll(filepath.Join(dir, OriginalsFolder), 0o755)
+	os.MkdirAll(filepath.Join(dir, ConvertedVideosFolder), 0o755)
 }
 
 // MainFolder returns the main folder.
@@ -132,11 +134,11 @@ func (a *App) SetEncoder(id, folder, choice string) (*EncoderInfo, error) {
 	return a.Encoders()
 }
 
-// OpenFolder shows one of PodManager's folders in Explorer: "main",
+// OpenFolder shows one of Classic iPod Manager's folders in Explorer: "main",
 // "converted", "originals", "encoders", or a format's encoder folder.
 func (a *App) OpenFolder(which string) error {
 	if a.mainDir == "" {
-		return errors.New("PodManager has no main folder")
+		return errors.New("Classic iPod Manager has no main folder")
 	}
 	var dir string
 	switch which {
@@ -512,7 +514,7 @@ func (a *App) FMRun(req FMRequest) error {
 		return fmt.Errorf("unknown format %q", req.Format)
 	}
 	if a.mainDir == "" {
-		return errors.New("PodManager has no main folder to save converted songs in")
+		return errors.New("Classic iPod Manager has no main folder to save converted songs in")
 	}
 	if _, err := a.encoderConfig().Encoder(f.ID); err != nil {
 		return err
@@ -688,6 +690,29 @@ func (pa *pathAllocator) libraryPath(base string, t media.Tags, ext string) stri
 			break
 		}
 		p = filepath.Join(dir, fmt.Sprintf("%s (%d)%s", name, n, ext))
+	}
+	pa.used[strings.ToLower(p)] = true
+	return p
+}
+
+// videoPath is a unique file name for a converted video.
+func (pa *pathAllocator) videoPath(base string, t media.Tags) string {
+	name := sanitize(firstNonEmpty(t.Title, "Video"))
+	if t.Artist != "" {
+		name = sanitize(t.Artist) + " - " + name
+	}
+	pa.mu.Lock()
+	defer pa.mu.Unlock()
+	if pa.used == nil {
+		pa.used = map[string]bool{}
+	}
+	p := filepath.Join(base, name+".m4v")
+	for n := 2; ; n++ {
+		_, err := os.Stat(p)
+		if errors.Is(err, fs.ErrNotExist) && !pa.used[strings.ToLower(p)] {
+			break
+		}
+		p = filepath.Join(base, fmt.Sprintf("%s (%d).m4v", name, n))
 	}
 	pa.used[strings.ToLower(p)] = true
 	return p
@@ -905,7 +930,7 @@ func (a *App) fmConvert(ctx context.Context, d *ipod.Device, req FMRequest, f co
 	}
 	if len(toAdd) > 0 && d != nil && !a.cancel.Load() {
 		sub := &JobResult{Errors: []JobError{}, Notes: []string{}}
-		if err := a.addFiles(d, "convert", toAdd, sub); err != nil {
+		if err := a.addFiles(ctx, d, "convert", toAdd, sub); err != nil {
 			return err
 		}
 		if sub.OK > 0 {

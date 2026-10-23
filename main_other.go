@@ -1,6 +1,6 @@
 //go:build !windows
 
-// On non-Windows systems PodManager runs as a small development server so
+// On non-Windows systems Classic iPod Manager runs as a small development server so
 // the interface and backend can be exercised in a browser:
 //
 //	go run . -roots /path/to/mounted/ipod -pick /path/to/music
@@ -101,7 +101,7 @@ func (p *devPlatform) Battery(serial string) (iap.Battery, error) {
 
 func (p *devPlatform) BatteryReport(serial string) (iap.Battery, string, error) {
 	b, err := p.Battery(serial)
-	r := fmt.Sprintf("PodManager %s battery report (development server)\niPod FireWire GUID: %s\n\nSimulated with -battery %q.\n", app.Version, serial, p.battery)
+	r := fmt.Sprintf("Classic iPod Manager %s battery report (development server)\niPod FireWire GUID: %s\n\nSimulated with -battery %q.\n", app.Version, serial, p.battery)
 	if err != nil {
 		r += "\nResult: failed: " + err.Error() + "\n"
 	} else {
@@ -121,11 +121,17 @@ func (p *devPlatform) PickAny(title string, filters []app.FileFilter, multi bool
 	if p.pick == "" {
 		return nil, errors.New("start with -pick <folder> to simulate the file dialog")
 	}
+	videos := len(filters) > 0 && strings.Contains(filters[0].Pattern, "*.m4v")
 	var out []string
 	entries, _ := os.ReadDir(p.pick)
 	for _, e := range entries {
-		if !e.IsDir() && media.DecodableExt(e.Name()) {
-			out = append(out, filepath.Join(p.pick, e.Name()))
+		path := filepath.Join(p.pick, e.Name())
+		if e.IsDir() {
+			continue
+		}
+		isVid := media.VideoExt(path) && media.IsVideo(path)
+		if (videos && isVid) || (!videos && !isVid && media.DecodableExt(path)) {
+			out = append(out, path)
 		}
 	}
 	return out, nil
@@ -183,7 +189,7 @@ func main() {
 	backups := flag.String("backups", filepath.Join(os.TempDir(), "podmanager-backups"), "backup folder")
 	battery := flag.String("battery", "", `simulated battery, e.g. "72,charging" (empty: not reported)`)
 	image := flag.String("image", "", "picture returned by the simulated picture dialog")
-	mainDir := flag.String("main", filepath.Join(os.TempDir(), "PodManager-main"), "PodManager's main folder (encoders, converted songs)")
+	mainDir := flag.String("main", filepath.Join(os.TempDir(), "ClassiciClassic iPod Manager-main"), "Classic iPod Manager's main folder (encoders, converted songs)")
 	flag.Parse()
 
 	plat := &devPlatform{pick: *pick, exportDir: *export, battery: *battery, image: *image}
@@ -265,6 +271,6 @@ func main() {
 			}
 		}
 	})
-	log.Printf("PodManager dev server on http://%s", *addr)
+	log.Printf("Classic iPod Manager dev server on http://%s", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
