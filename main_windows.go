@@ -18,6 +18,7 @@ import (
 
 func main() {
 	runtime.LockOSThread()
+	setProcessIdentity()
 
 	local := os.Getenv("LOCALAPPDATA")
 	if local == "" {
@@ -91,6 +92,7 @@ func main() {
 		<-done
 	})
 	plat.hwnd = uintptr(w.Window())
+	setWindowIdentity(plat.hwnd)
 	plat.dispatch = w.Dispatch
 	w.SetSize(int(minW), int(minH), webview2.HintMin)
 

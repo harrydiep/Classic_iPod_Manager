@@ -281,7 +281,7 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		icon, _, _ = w32.User32LoadImageW.Call(uintptr(hinstance), uintptr(opts.IconId), 1, 0, 0, w32.LR_DEFAULTSIZE|w32.LR_SHARED)
 	}
 
-	className, _ := windows.UTF16PtrFromString("webview")
+	className, _ := windows.UTF16PtrFromString("ClassiciPodManager")
 	wc := w32.WndClassExW{
 		CbSize:        uint32(unsafe.Sizeof(w32.WndClassExW{})),
 		HInstance:     hinstance,

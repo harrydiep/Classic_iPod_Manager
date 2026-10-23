@@ -17,6 +17,8 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 - **Format Manager** (Formats button, Ctrl+M, or right-click songs on the iPod): change the details and album artwork of songs on the computer or the iPod, and convert them between MP3, AAC, Apple Lossless, WAV, AIFF, FLAC and Ogg Vorbis at the bit rate you choose. See below.
 - A song list with name, time, artist, album, genre, year, file type, bit rate, size, date added, rating and plays. Every column (Name included) can be resized freely; double-click a column edge to fit it to its contents, and right-click the header to show or hide columns. Columns sort by clicking their heading.
 - Inline star ratings, search, and a Genre / Artist / Album browser.
+- The row under the mouse is highlighted, in the song list and the Format Manager.
+- Windows shows the program as **Classic iPod Manager** with its own icon in the taskbar, Alt+Tab, the title bar and Task Manager, and a pinned taskbar button keeps that name and icon.
 - The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
 - Copy songs back to the computer (organised as Artist\Album\NN Title), or drag them out of the window.
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
