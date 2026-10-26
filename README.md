@@ -39,7 +39,8 @@ Each video gets a thumbnail for the iPod's menus: its own cover picture if it ha
 The **Playlists** heading in the sidebar lists the iPod's playlists.
 
 - **New playlist**: click **+** next to the heading (or Ctrl+N), type a name and press Enter. Or select songs, right-click and choose **Add to Playlist → New Playlist from Selection**, or drag the songs onto the Playlists heading.
-- **Add songs**: drag them onto a playlist, or right-click and choose **Add to Playlist**. Songs already in the playlist aren't added twice.
+- **Add songs**: open the playlist and click **Add Songs** (Ctrl+O). A list of everything on the iPod opens: click songs to tick them (Shift+click ticks a run, the box in the heading ticks every song shown), and type in the search box to narrow the list by name, artist, album, genre or composer. Ticks are kept while you search, so you can search for one thing, tick it, then search for another. Pressing Enter in the search ticks the only match; Ctrl+Enter or **Add to Playlist** adds what's ticked. Songs already in the playlist are marked and can't be ticked again. Videos are under the **Videos** tab. Click a heading to sort. You can also drag songs onto a playlist in the sidebar, or right-click and choose **Add to Playlist**.
+- In a playlist, **Add Folder** is hidden and **Remove** (or Delete) takes the selected songs out of the playlist; they stay on the iPod.
 - **Reorder**: in a playlist sorted by the first (#) column, drag songs up or down. Click the # heading to get back to the playlist's own order after sorting by another column.
 - **Remove songs from a playlist**: select them and press Delete, or right-click → **Remove from Playlist**. The songs stay on the iPod. (Shift+Delete, or **Remove from iPod…**, deletes them from the iPod.)
 - **Rename** a playlist by double-clicking it, and **delete** it by right-clicking it. Deleting a playlist leaves its songs on the iPod.

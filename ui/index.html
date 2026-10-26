@@ -325,6 +325,37 @@ body.pbottom .footer{height:calc(32px*var(--fs))}
 .lightbox p{color:#d5dae0;font-size:calc(12px*var(--fs));text-align:center;margin:10px 0 0}
 
 /* options */
+/* adding iPod songs to a playlist */
+.sheet.picker{width:min(calc(860px*var(--fs)),96vw);height:min(calc(640px*var(--fs)),92vh)}
+.pk-bar{display:flex;align-items:center;gap:10px;padding:2px 20px 10px;flex:none}
+.pk-bar .search{flex:1;width:auto;height:calc(28px*var(--fs));border-radius:14px;border-color:var(--sheet-line)}
+.pk-bar .search input{font-size:calc(13px*var(--fs))}
+.pk-bar .seg button{padding:3px 12px}
+.pk-count{color:var(--muted);font-size:calc(12px*var(--fs));white-space:nowrap;min-width:calc(90px*var(--fs));text-align:right}
+.pk-list{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 20px;border:1px solid var(--sheet-line);border-radius:6px;overflow:hidden;background:var(--list);position:relative}
+.pk-head,.pk-row{display:grid;grid-template-columns:30px minmax(0,2.2fr) minmax(0,1.5fr) minmax(0,1.5fr) calc(54px*var(--fs));align-items:center}
+.pk-head{flex:none;height:calc(22px*var(--fs));font-size:calc(11.5px*var(--fs));background:linear-gradient(var(--head-a),var(--head-b));border-bottom:1px solid var(--head-line);user-select:none}
+:root[data-modern] .pk-head{background:var(--head);color:var(--muted);font-weight:600}
+.pk-head>span{padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-head>span[data-sort]{cursor:default}
+.pk-head>span[data-sort]:hover{color:var(--text)}
+.pk-head .arrow{font-size:8px;margin-left:4px}
+.pk-head>span.r,.pk-row>span.r{text-align:right}
+.pk-scroll{flex:1;overflow:auto;position:relative;outline:none}
+.pk-spacer{position:relative}
+.pk-row{position:absolute;left:0;right:0;height:var(--row,20px);line-height:var(--row,20px);font-size:calc(12px*var(--fs));cursor:default;user-select:none}
+.pk-row>span{padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-row.odd{background:var(--stripe)}
+.pk-row:hover{background:var(--row-hover)}
+.pk-row.on{background:color-mix(in srgb,var(--focus) 22%,var(--list))}
+.pk-row.cur{box-shadow:inset 0 0 0 1px var(--focus)}
+.pk-row.has{color:var(--faint)}
+.pk-row .m{color:var(--muted)}
+.pk-row.has .m{color:var(--faint)}
+.pk-row input,.pk-head input{margin:0 0 0 8px;accent-color:var(--focus);pointer-events:none}
+.pk-head input{pointer-events:auto}
+.pk-row .tag{font-size:calc(10px*var(--fs));border:1px solid currentColor;border-radius:8px;padding:0 6px;margin-left:6px;line-height:1.4}
+.pk-empty{position:absolute;inset:calc(22px*var(--fs)) 0 0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:20px;pointer-events:none}
 .sheet.opts{width:min(calc(780px*var(--fs)),96vw);height:min(calc(600px*var(--fs)),92vh)}
 .sheet.opts .sheet-h{padding-bottom:10px;border-bottom:1px solid var(--sheet-line)}
 .opt-body{display:grid;grid-template-columns:calc(168px*var(--fs)) minmax(0,1fr);flex:1 1 auto;min-height:0}
@@ -1380,6 +1411,169 @@ async function setVideoKind(ids, mt){
   catch(e){ alertSheet("Couldn’t move the videos", e.message); }
 }
 
+/* ------------------------------------------------------------------ adding iPod songs to a playlist */
+// Add Songs in a playlist opens a list of everything on the iPod to pick
+// from: click songs to tick them (Shift+click ticks a run), search to narrow
+// the list, then Add to Playlist. Songs already in the playlist are marked.
+function openPlaylistPicker(){
+  const pl = curPlaylist();
+  if (!pl || !pl.editable || !canWrite()) return;
+  const inPl = new Set(pl.trackIds);
+  const hasVideos = S.lib.tracks.some(t => t.video);
+  const K = {kind: "music", q: "", sort: {key: "artist", dir: 1}, sel: new Set(), list: [], cur: -1, anchor: -1};
+  const cols = [["title", "Name"], ["artist", "Artist"], ["album", "Album"], ["lengthMs", "Time", true]];
+  sheet(`<div class="sheet-h">Add Songs to “${esc(pl.name)}”</div>
+    <div class="pk-bar">
+      <label class="search pk-search"><svg><use href="#i-search"/></svg><input id="pkSearch" type="text" placeholder="Search songs on the iPod" aria-label="Search songs on the iPod" spellcheck="false" autofocus data-escclear><button class="clear" id="pkClear" aria-label="Clear search">✕</button></label>
+      ${hasVideos ? `<div class="seg" role="group" aria-label="Show"><button data-kind="music" class="on">Songs</button><button data-kind="video">Videos</button></div>` : ""}
+      <span class="pk-count" id="pkCount" aria-live="polite"></span>
+    </div>
+    <div class="pk-list">
+      <div class="pk-head" id="pkHead"></div>
+      <div class="pk-scroll" id="pkScroll" tabindex="0" role="listbox" aria-multiselectable="true" aria-label="Songs on the iPod"><div class="pk-spacer" id="pkSpacer"></div></div>
+      <div class="pk-empty hidden" id="pkEmpty"></div>
+    </div>
+    <div class="sheet-f"><div class="left"><button class="btn" data-clear disabled>Clear Selection</button></div>
+      <button class="btn" data-c>Cancel</button><button class="btn primary" data-ok disabled>Add to Playlist</button></div>`,
+  (v, close) => {
+    v.querySelector(".sheet").classList.add("picker");
+    const sc = v.querySelector("#pkScroll"), sp = v.querySelector("#pkSpacer"), q = v.querySelector("#pkSearch");
+    const selectable = t => !inPl.has(t.id);
+    const build = () => {
+      const words = K.q.toLowerCase().split(/\s+/).filter(Boolean);
+      let list = S.lib.tracks.filter(t => (K.kind === "video") === !!t.video);
+      if (words.length) list = list.filter(t => {
+        const hay = [t.title, t.artist, t.albumArtist, t.album, t.genre, t.composer].join(" ").toLowerCase();
+        return words.every(w => hay.includes(w));
+      });
+      const c = cmpBy(K.sort.key);
+      K.list = list.sort((a, b) => c(a, b) * K.sort.dir);
+      K.cur = Math.min(K.cur, K.list.length - 1);
+    };
+    const paintHead = () => {
+      const avail = K.list.filter(selectable), all = avail.length > 0 && avail.every(t => K.sel.has(t.id));
+      v.querySelector("#pkHead").innerHTML = `<span><input type="checkbox" id="pkAll" ${all ? "checked" : ""} ${avail.length ? "" : "disabled"} aria-label="Tick every song shown" title="Tick every song shown (Ctrl+A)"></span>` +
+        cols.map(([k, l, r]) => `<span data-sort="${k}" class="${r ? "r" : ""}" role="button" title="Sort by ${l}">${l}${K.sort.key === k ? `<span class="arrow">${K.sort.dir > 0 ? "▲" : "▼"}</span>` : ""}</span>`).join("");
+      const box = v.querySelector("#pkAll");
+      if (box && !all && avail.some(t => K.sel.has(t.id))) box.indeterminate = true;
+    };
+    const paintFoot = () => {
+      const n = K.sel.size;
+      v.querySelector("[data-ok]").disabled = !n;
+      v.querySelector("[data-ok]").textContent = n ? `Add ${plural(n, K.kind === "video" && [...K.sel].every(id => (S.byId.get(id) || {}).video) ? "Video" : "Song")} to Playlist` : "Add to Playlist";
+      v.querySelector("[data-clear]").disabled = !n;
+      v.querySelector("#pkCount").textContent = `${plural(K.list.length, K.kind === "video" ? "video" : "song")}${n ? ` · ${n.toLocaleString()} ticked` : ""}`;
+    };
+    let lastKey = "";
+    const paintRows = force => {
+      sp.style.height = K.list.length * ROW + "px";
+      const first = Math.max(0, Math.floor(sc.scrollTop / ROW) - 5), last = Math.min(K.list.length, Math.ceil((sc.scrollTop + sc.clientHeight) / ROW) + 5);
+      const key = first + ":" + last;
+      if (!force && key === lastKey) return;
+      lastKey = key;
+      let h = "";
+      for (let i = first; i < last; i++){
+        const t = K.list[i], has = inPl.has(t.id), on = K.sel.has(t.id);
+        h += `<div class="pk-row ${i % 2 ? "odd" : ""} ${on ? "on" : ""} ${has ? "has" : ""} ${i === K.cur ? "cur" : ""}" style="top:${i*ROW}px" data-i="${i}" role="option" aria-selected="${on}" ${has ? `aria-disabled="true" title="Already in this playlist"` : ""}>
+          <span><input type="checkbox" tabindex="-1" ${on || has ? "checked" : ""} ${has ? "disabled" : ""} aria-hidden="true"></span>
+          <span>${esc(t.title || "")}${has ? `<span class="tag">In playlist</span>` : ""}</span><span class="m">${esc(t.artist || "")}</span><span class="m">${esc(t.album || "")}</span><span class="r m">${fmtTime(t.lengthMs)}</span></div>`;
+      }
+      sp.innerHTML = h;
+      const em = v.querySelector("#pkEmpty");
+      em.classList.toggle("hidden", K.list.length > 0);
+      em.innerHTML = K.q ? `<div><b>Nothing matches “${esc(K.q)}”</b><br>Try fewer words.</div>` : `<div>No ${K.kind === "video" ? "videos" : "songs"} on this iPod yet.</div>`;
+    };
+    const refresh = () => { build(); paintHead(); paintRows(true); paintFoot(); };
+    const toggle = (i, on) => {
+      const t = K.list[i]; if (!t || !selectable(t)) return;
+      if (on === undefined) on = !K.sel.has(t.id);
+      on ? K.sel.add(t.id) : K.sel.delete(t.id);
+    };
+    const moveCur = i => {
+      K.cur = Math.max(0, Math.min(K.list.length - 1, i));
+      const top = K.cur * ROW;
+      if (top < sc.scrollTop) sc.scrollTop = top; else if (top + ROW > sc.scrollTop + sc.clientHeight) sc.scrollTop = top + ROW - sc.clientHeight;
+      paintRows(true);
+    };
+    const add = async () => {
+      if (!K.sel.size) return;
+      // in the order they're listed (by artist and album unless sorted otherwise)
+      const order = new Map(); S.lib.tracks.slice().sort((a, b) => cmpBy(K.sort.key)(a, b) * K.sort.dir).forEach((t, i) => order.set(t.id, i));
+      const ids = [...K.sel].sort((a, b) => order.get(a) - order.get(b));
+      close();
+      await addToPlaylist(pl.id, ids);
+    };
+    sc.addEventListener("scroll", () => paintRows(false));
+    sc.addEventListener("mousedown", e => {
+      const row = e.target.closest(".pk-row"); if (!row) return;
+      e.preventDefault(); sc.focus();
+      const i = +row.dataset.i;
+      if (e.shiftKey && K.anchor >= 0){
+        const on = !K.sel.has((K.list[i] || {}).id);
+        const [lo, hi] = K.anchor < i ? [K.anchor, i] : [i, K.anchor];
+        for (let j = lo; j <= hi; j++) toggle(j, on);
+      } else toggle(i);
+      K.anchor = i; K.cur = i;
+      paintRows(true); paintHead(); paintFoot();
+    });
+    sc.addEventListener("dblclick", e => { const row = e.target.closest(".pk-row"); if (row && K.sel.size) add(); });
+    sc.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown"){ e.preventDefault(); moveCur(K.cur + 1); if (e.shiftKey){ toggle(K.cur, true); paintHead(); paintFoot(); paintRows(true); } }
+      else if (e.key === "ArrowUp"){ e.preventDefault(); if (K.cur <= 0){ q.focus(); return; } moveCur(K.cur - 1); if (e.shiftKey){ toggle(K.cur, true); paintHead(); paintFoot(); paintRows(true); } }
+      else if (e.key === "PageDown" || e.key === "PageUp"){ e.preventDefault(); const pg = Math.max(1, Math.floor(sc.clientHeight / ROW) - 1); moveCur(K.cur + (e.key === "PageDown" ? pg : -pg)); }
+      else if (e.key === "Home" || e.key === "End"){ e.preventDefault(); moveCur(e.key === "Home" ? 0 : K.list.length - 1); }
+      else if (e.key === " "){ e.preventDefault(); if (K.cur >= 0){ toggle(K.cur); K.anchor = K.cur; paintRows(true); paintHead(); paintFoot(); } }
+      else if (e.key === "Enter"){ e.preventDefault(); if (!K.sel.size && K.cur >= 0) toggle(K.cur); add(); }
+      else if (e.ctrlKey && e.key.toLowerCase() === "a"){ e.preventDefault(); selectShown(); }
+      else if (e.key.length === 1 && !e.ctrlKey && !e.altKey){ q.focus(); } // typing goes to the search
+    });
+    const selectShown = () => {
+      const avail = K.list.filter(selectable), all = avail.length && avail.every(t => K.sel.has(t.id));
+      avail.forEach(t => all ? K.sel.delete(t.id) : K.sel.add(t.id));
+      paintRows(true); paintHead(); paintFoot();
+    };
+    v.querySelector("#pkHead").addEventListener("click", e => {
+      if (e.target.id === "pkAll"){ e.preventDefault(); selectShown(); return; }
+      const h = e.target.closest("[data-sort]"); if (!h) return;
+      const k = h.dataset.sort;
+      K.sort = K.sort.key === k ? {key: k, dir: -K.sort.dir} : {key: k, dir: 1};
+      refresh();
+    });
+    let qt;
+    q.addEventListener("input", () => {
+      v.querySelector(".pk-search").classList.toggle("has", !!q.value);
+      clearTimeout(qt); qt = setTimeout(() => { K.q = q.value.trim(); K.cur = K.list.length ? 0 : -1; sc.scrollTop = 0; refresh(); K.cur = K.list.length ? 0 : -1; paintRows(true); }, 120);
+    });
+    q.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown"){ e.preventDefault(); sc.focus(); if (K.cur < 0) moveCur(0); }
+      else if (e.key === "Enter"){
+        e.preventDefault();
+        // Enter in the search ticks the only match (search, Enter, search,
+        // Enter… builds up a selection); otherwise, or with Ctrl, it adds
+        const avail = K.list.filter(selectable);
+        if (!e.ctrlKey && avail.length === 1 && !K.sel.has(avail[0].id)){
+          toggle(K.list.indexOf(avail[0]), true); paintRows(true); paintHead(); paintFoot();
+          q.select(); return;
+        }
+        add();
+      }
+      else if (e.key === "Escape" && q.value){ e.preventDefault(); e.stopPropagation(); q.value = ""; q.dispatchEvent(new Event("input")); }
+    });
+    v.querySelector("#pkClear").onclick = e => { e.preventDefault(); q.value = ""; q.dispatchEvent(new Event("input")); q.focus(); };
+    v.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => {
+      K.kind = b.dataset.kind; K.cur = -1; K.anchor = -1; sc.scrollTop = 0;
+      v.querySelectorAll("[data-kind]").forEach(x => x.classList.toggle("on", x === b));
+      refresh();
+    });
+    v.querySelector("[data-clear]").onclick = () => { K.sel.clear(); paintRows(true); paintHead(); paintFoot(); };
+    v.querySelector("[data-c]").onclick = close;
+    v.querySelector("[data-ok]").onclick = add;
+    refresh();
+    // rows are drawn once the sheet has its size
+    requestAnimationFrame(() => paintRows(true));
+  });
+}
+
 /* ------------------------------------------------------------------ menus with submenus */
 // items: {label, fn, sub:[items], disabled} or null for a separator
 function popMenu(x, y, items){
@@ -1679,7 +1873,7 @@ function renderRows(force){
   if (!list.length){
     em.classList.remove("hidden");
     em.innerHTML = S.search ? `<div><p class="big">No ${isVideoView() ? "videos" : "songs"} match “${esc(S.search)}”</p><p>Try fewer words, or clear the search.</p></div>`
-      : S.view.startsWith("pl:") ? `<div><p class="big">This playlist is empty</p></div>`
+      : S.view.startsWith("pl:") ? `<div><p class="big">This playlist is empty</p>${curPlaylist() && curPlaylist().editable && !S.lib.readOnly ? "<p>Click Add Songs to choose songs on the iPod, or drag songs from Music onto the playlist.</p>" : ""}</div>`
       : S.view.startsWith("v:") ? `<div><p class="big">No ${esc((VIDEO_KINDS.find(k => "v:" + k[0] === S.view) || [0, "videos"])[1].toLowerCase().replace(/^tv/, "TV"))} yet</p><p>Use Add Videos, or drag videos here; they’re filed under ${esc((VIDEO_KINDS.find(k => "v:" + k[0] === S.view) || [0, "Videos"])[1])} on the iPod. Videos the iPod can’t play are converted with FFmpeg if it’s in an encoder folder.</p></div>`
       : S.view === "videos" ? `<div><p class="big">No videos on this iPod yet</p><p>Use Add Videos, or drag videos onto the window. Videos the iPod can’t play are converted with FFmpeg if it’s in an encoder folder.</p></div>`
       : `<div><p class="big">No music on this iPod yet</p><p>Use Add Songs or Add Folder to copy music from your computer.</p></div>`;
@@ -1695,6 +1889,20 @@ function updateButtons(){
   $("#bBrowse").classList.toggle("on", S.browser && S.view !== "fm"); $("#bBrowse").disabled = !S.lib;
   const vids = isVideoView();
   paintTransport();
+  // In a playlist, Add Songs picks songs already on the iPod and there's no
+  // Add Folder; Remove takes songs out of the playlist.
+  const pl = curPlaylist();
+  $("#bFormats").classList.toggle("on", S.view === "fm");
+  $("#bFolder").classList.toggle("hidden", !!pl);
+  if (pl){
+    $("#bAdd").disabled = ro || busy || !pl.editable;
+    $("#bAdd .t").textContent = "Add Songs";
+    $("#bAdd").title = pl.editable ? `Choose songs on the iPod to add to “${pl.name}” (Ctrl+O)` : "This playlist fills itself and can’t be changed here";
+    $("#bRemove").disabled = ro || busy || !n || !pl.editable;
+    $("#bRemove").title = pl.editable ? "Remove from the playlist (Delete); the songs stay on the iPod" : "This playlist can’t be changed here";
+    return;
+  }
+  $("#bRemove").title = "Remove from iPod (Delete)";
   $("#bAdd .t").textContent = vids ? "Add Videos" : "Add Songs";
   $("#bAdd").title = vids ? "Add videos (Ctrl+O)" : "Add songs (Ctrl+O)";
   $("#bFolder").title = vids ? "Add every video in a folder" : "Add every song in a folder";
@@ -2214,6 +2422,8 @@ function sheet(html, onReady){
   v.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
   document.body.appendChild(v);
   const onKey = e => {
+    // Escape closes the sheet, except in a search box with text in it, where it clears the text
+    if (e.key === "Escape" && e.target.hasAttribute && e.target.hasAttribute("data-escclear") && e.target.value) return;
     if (e.key === "Escape" && sheetStack[sheetStack.length-1] === close && !document.querySelector(".lightbox")){ e.preventDefault(); close(); }
   };
   const close = () => { v.remove(); removeEventListener("keydown", onKey, true); sheetStack = sheetStack.filter(x => x !== close); const sc = $("#tscroll"); sc && sc.focus(); };
@@ -2997,7 +3207,7 @@ function renderAll(){ applyTheme(); renderSidebar(); renderMain(); renderLCD(); 
 /* ------------------------------------------------------------------ toolbar & keys */
 $("#bOptions").onclick = () => openOptions();
 $("#bFormats").onclick = () => { if (S.view !== "fm") setView("fm"); };
-$("#bAdd").onclick = () => isVideoView() ? addVideos() : addSongs(); $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = confirmRemove;
+$("#bAdd").onclick = () => curPlaylist() ? openPlaylistPicker() : isVideoView() ? addVideos() : addSongs(); $("#bFolder").onclick = addFolder; $("#bInfo").onclick = openInfo; $("#bRemove").onclick = () => { const pl = curPlaylist(); if (pl && pl.editable) removeFromPlaylist(); else confirmRemove(); };
 $("#bBrowse").onclick = () => { if (S.view === "fm"){ setView("music"); if (S.browser) return; } S.browser = !S.browser; store.set("browser", S.browser); S.bsel = {genre:null, artist:null, album:null}; S.listDirty = true; if (S.view === "summary") S.view = "music"; renderAll(); };
 let searchT;
 $("#search").addEventListener("input", e => {
@@ -3020,7 +3230,7 @@ addEventListener("keydown", e => {
   if (sheetStack.length) return;
   if (e.ctrlKey && k === ","){ e.preventDefault(); openOptions(); }
   if (e.ctrlKey && k === "f"){ e.preventDefault(); $("#search").focus(); $("#search").select(); }
-  if (e.ctrlKey && k === "o"){ e.preventDefault(); isVideoView() ? addVideos() : addSongs(); }
+  if (e.ctrlKey && k === "o"){ e.preventDefault(); const pl = curPlaylist(); pl ? (pl.editable && canWrite() && openPlaylistPicker()) : isVideoView() ? addVideos() : addSongs(); }
   if (e.ctrlKey && k === "i"){ e.preventDefault(); if (S.view !== "fm") openInfo(); }
   if (e.ctrlKey && k === "m"){ e.preventDefault(); if (S.view !== "fm") setView("fm"); }
   if (e.ctrlKey && k === "b"){ e.preventDefault(); $("#bBrowse").click(); }
