@@ -24,7 +24,7 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
 - **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. Classic iPod Manager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute. Click it for a Battery window with a step-by-step report you can copy, which shows where the request fails if your iPod doesn't answer.
 - Keeps play counts, ratings, smart playlists and On-The-Go playlists made on the iPod.
-- **Options** (gear button, or Ctrl+,): interface size from 75% to 200%, text size (Small to Largest, which changes only the text and list rows), theme, and whether edits also update the song files. Themes come in two styles: the classic brushed-aluminium Silver and Black (plus Auto, which matches the connected iPod's colour), and modern flat themes in Dark Blue, Space Grey, White and Red. Settings are kept in `%LOCALAPPDATA%\Classic iPod Manager\settings.json`.
+- **Options** (gear button, or Ctrl+,), in four views chosen from the menu on the left: **Interface** (theme, interface size from 75% to 200%, and text size from Small to Largest, which changes only the text and list rows), **Player** (whether the player controls sit in the top bar or the bottom bar), **Editing** (whether edits also update the song files) and **Encoders** (see Format Manager). Themes come in two styles: the classic brushed-aluminium Silver and Black (plus Auto, which matches the connected iPod's colour), and modern flat themes in Dark Blue, Space Grey, White and Red. Settings are kept in `%LOCALAPPDATA%\Classic iPod Manager\settings.json`.
 
 ## Videos
 
@@ -48,7 +48,9 @@ Smart playlists, On-The-Go playlists and Podcasts come from the iPod or iTunes a
 
 ## Playback
 
-Double-click a song to play it, or select songs and press Space. The songs after it in the list play next. The controls are left of the display: previous (restarts the song if it's more than three seconds in), play/pause and next, then volume and mute. Keyboard: Space play/pause, Ctrl+Left / Ctrl+Right previous / next, Ctrl+Up / Ctrl+Down volume. The mouse wheel over the controls also changes the volume.
+Double-click a song to play it, or select songs and press Space. The songs after it in the list play next. The controls are left of the display: previous (restarts the song if it's more than three seconds in), play/pause and next, then volume and mute. **Options → Player** moves them to the right-hand end of the bottom bar instead.
+
+Hovering over Classic iPod Manager's button on the Windows taskbar shows Previous, Play/Pause and Next under the window's preview, as media players do, and the preview's tooltip names the playing song. The buttons follow Windows' light or dark taskbar. Keyboard: Space play/pause, Ctrl+Left / Ctrl+Right previous / next, Ctrl+Up / Ctrl+Down volume. The mouse wheel over the controls also changes the volume.
 
 The display shows the playing song, its artist and album, and a position bar: click or drag it to jump. The playing song has a speaker beside its name.
 
@@ -135,7 +137,7 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 | `internal/ipod` | iPod layout, model detection, safe saving with backups, file naming, writing the iPod's artwork database |
 | `internal/app` | Operations the UI calls, background jobs with progress and transfer speed, playlists, and the playback server |
 | `ui/index.html` | The interface (embedded in the exe) |
-| `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer, the iPod's USB accessory (HID) interface for the battery |
+| `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer, the taskbar identity and preview media buttons (glyphs drawn in `glyphs.go`), the iPod's USB accessory (HID) interface for the battery |
 | `third_party/go-webview2` | [go-webview2](https://github.com/jchv/go-webview2) (MIT) with a small patch that passes the paths of files dropped on the window |
 
 ## Limitations

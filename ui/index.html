@@ -60,7 +60,19 @@ button{cursor:default}
 .tbtn svg{width:16px;height:16px}
 .spacer{width:10px}
 /* playback controls, left of the LCD */
+.tbslot{display:flex;justify-content:flex-end;align-items:center}
+.ftslot{display:flex;justify-content:flex-end;align-items:center;padding:0 10px;min-width:0}
 .transport{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+/* in the bottom bar: the same controls, smaller */
+.ftslot .transport{gap:4px}
+.ftslot .pbtn{width:22px;height:22px}
+.ftslot .pbtn.big{width:26px;height:26px}
+.ftslot .pbtn svg{width:11px;height:11px}
+.ftslot .pbtn.big svg{width:13px;height:13px}
+.ftslot .vol{margin-left:4px}
+.ftslot .vol input{width:calc(84px*var(--fs))}
+.ftslot .volbtn{color:var(--text)}
+body.pbottom .footer{height:calc(32px*var(--fs))}
 .pbtn{width:30px;height:30px;border-radius:50%;padding:0;display:grid;place-items:center;color:var(--text);
   background:linear-gradient(var(--btn-a),var(--btn-b));border:1px solid var(--btn-line);box-shadow:inset 0 1px 0 var(--alu-hi),0 1px 0 rgba(255,255,255,.35);flex:none}
 .pbtn.big{width:36px;height:36px}
@@ -313,6 +325,30 @@ button{cursor:default}
 .lightbox p{color:#d5dae0;font-size:calc(12px*var(--fs));text-align:center;margin:10px 0 0}
 
 /* options */
+.sheet.opts{width:min(calc(780px*var(--fs)),96vw);height:min(calc(600px*var(--fs)),92vh)}
+.sheet.opts .sheet-h{padding-bottom:10px;border-bottom:1px solid var(--sheet-line)}
+.opt-body{display:grid;grid-template-columns:calc(168px*var(--fs)) minmax(0,1fr);flex:1 1 auto;min-height:0}
+.opt-nav{display:flex;flex-direction:column;gap:2px;padding:10px 8px;border-right:1px solid var(--sheet-line);background:color-mix(in srgb,var(--text) 3%,transparent);overflow:auto}
+.opt-nav button{display:flex;align-items:center;gap:9px;border:0;background:none;color:var(--text);text-align:left;padding:7px 10px;border-radius:6px;font-size:calc(12.5px*var(--fs))}
+.opt-nav button svg{width:16px;height:16px;flex:none;color:var(--muted)}
+.opt-nav button:hover{background:var(--row-hover)}
+.opt-nav button.on{background:linear-gradient(var(--sel-a),var(--sel-b));color:var(--sel-text)}
+:root[data-modern] .opt-nav button.on{background:var(--accent);color:#fff}
+.opt-nav button.on svg{color:inherit}
+.opt-pane{overflow:auto;padding:14px 20px 10px;min-width:0}
+.opt-pane h3{margin:0 0 12px;font-size:calc(14px*var(--fs));font-weight:600}
+.opt-pane[hidden]{display:none}
+.place{display:flex;gap:10px;flex-wrap:wrap}
+.place button{display:flex;flex-direction:column;align-items:center;gap:6px;width:calc(150px*var(--fs));padding:8px 8px 6px;border-radius:9px;border:1px solid transparent;background:none;font-size:calc(11.5px*var(--fs));color:var(--text)}
+.place button.on{border-color:var(--focus);background:color-mix(in srgb,var(--focus) 10%,transparent)}
+.place .mock{width:100%;aspect-ratio:16/10;border:1px solid var(--sheet-line);border-radius:5px;display:grid;grid-template-rows:22% 1fr 14%;overflow:hidden;background:var(--list)}
+.place .mock i{display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:0 5px;background:var(--alu-mid,#d0d4d9)}
+:root[data-modern] .place .mock i{background:var(--tb)}
+.place .mock i:last-child{background:var(--foot,var(--alu-bot,#c4c8cd))}
+.place .mock i b{width:7px;height:7px;border-radius:50%;background:var(--focus)}
+.place .mock i b:nth-child(2){width:9px;height:9px}
+.place .mock i.lcdm{justify-content:center}
+.place .mock i.lcdm s{width:38%;height:62%;border-radius:2px;background:var(--lcd-glass);border:1px solid var(--sheet-line);margin-left:6px}
 .opt-sec{font-size:calc(12px*var(--fs));font-weight:700;color:var(--muted);margin:14px 0 8px}
 .opt-sec:first-child{margin-top:4px}
 .opt-row{display:grid;grid-template-columns:calc(118px*var(--fs)) 1fr;gap:6px 12px;align-items:center;margin-bottom:10px}
@@ -392,10 +428,11 @@ body.ldragging,body.ldragging *{cursor:default!important}
 ::-webkit-scrollbar-corner{background:var(--list)}
 :root[data-dark] ::-webkit-scrollbar-thumb{background:#4b4e54;border-color:var(--list)}
 :root[data-dark] ::-webkit-scrollbar-thumb:hover{background:#5c6067}
-@media (max-width:1220px){.vol input{width:56px}.tbtn .t{display:none}.tbtn{min-width:40px}.search{width:140px}}
-@media (max-width:1000px){.toolbar{grid-template-columns:auto auto 1fr 0 auto}.vol input{display:none}.pbtn{width:26px;height:26px}.pbtn.big{width:30px;height:30px}}
+@media (max-width:1220px){.tbslot .vol input{width:56px}.tbtn .t{display:none}.tbtn{min-width:40px}.search{width:140px}}
+@media (max-width:1000px){.toolbar{grid-template-columns:auto auto 1fr 0 auto}.tbslot .vol input{display:none}.tbslot .pbtn{width:26px;height:26px}.tbslot .pbtn.big{width:30px;height:30px}}
+@media (max-width:860px){.ftslot .vol input{width:48px}}
 @media (max-width:780px){:root{--sidebar:156px}.toolbar{gap:8px;padding:7px 8px}.tgroup{gap:2px}.tbtn{min-width:34px}.spacer{width:2px}.search{width:104px}.lcd{min-width:0}.footer .stats{font-size:calc(10.5px*var(--fs))}}
-@media (max-width:600px){.vol{display:none}.search{width:84px}.lcd-line2{display:none}.tbtn .cap{width:30px}}
+@media (max-width:600px){.tbslot .vol,.ftslot .vol{display:none}.search{width:84px}.lcd-line2{display:none}.tbtn .cap{width:30px}}
 
 /* drag & drop */
 .dropzone{position:fixed;inset:0;z-index:40;pointer-events:none;display:none}
@@ -672,12 +709,12 @@ body.ldragging,body.ldragging *{cursor:default!important}
       <button class="tbtn" id="bInfo" title="Get Info (Ctrl+I)"><span class="cap"><svg><use href="#i-info"/></svg></span><span class="t">Get Info</span></button>
       <button class="tbtn" id="bRemove" title="Remove from iPod (Delete)"><span class="cap"><svg><use href="#i-remove"/></svg></span><span class="t">Remove</span></button>
     </div>
-    <div class="transport" id="transport" role="group" aria-label="Playback">
+    <div class="tbslot" id="tbSlot"><div class="transport" id="transport" role="group" aria-label="Playback">
       <button class="pbtn" id="pPrev" title="Previous (Ctrl+Left)" aria-label="Previous"><svg><use href="#i-prev"/></svg></button>
       <button class="pbtn big" id="pPlay" title="Play (Space)" aria-label="Play"><svg><use href="#i-play" id="pPlayIcon"/></svg></button>
       <button class="pbtn" id="pNext" title="Next (Ctrl+Right)" aria-label="Next"><svg><use href="#i-next"/></svg></button>
       <div class="vol"><button class="volbtn" id="pMute" title="Mute" aria-label="Mute"><svg><use href="#i-vol" id="pVolIcon"/></svg></button><input type="range" id="pVol" min="0" max="1" step="0.01" value="0.8" aria-label="Volume" title="Volume"></div>
-    </div>
+    </div></div>
     <div class="lcd" role="status" aria-live="polite">
       <div class="lcd-in">
         <div class="lcd-title"><span id="lcdTitle">Classic iPod Manager</span><span class="battbox unknown" id="battBox" tabindex="0" role="img" aria-label="Battery" aria-describedby="battPop"><svg class="bolt" aria-hidden="true"><use href="#i-bolt"/></svg><span class="batt"><i id="lcdBatt" style="width:100%"></i></span></span></div>
@@ -701,7 +738,7 @@ body.ldragging,body.ldragging *{cursor:default!important}
   <footer class="footer">
     <div class="mini" id="miniCap"></div>
     <div class="stats" id="stats"></div>
-    <div></div>
+    <div class="ftslot" id="ftSlot"></div>
   </footer>
 </div>
 
@@ -850,32 +887,72 @@ function syncScaleUI(){
 }
 
 /* ------------------------------------------------------------------ options */
+const OPT_VIEWS = [["interface", "Interface", "i-browse"], ["player", "Player", "i-play"], ["editing", "Editing", "i-info"], ["encoders", "Encoders", "i-convert"]];
 function openOptions(section){
   if (sheetStack.length) return;
+  const view0 = OPT_VIEWS.some(x => x[0] === section) ? section : (OPT_VIEWS.some(x => x[0] === store.get("optView")) ? store.get("optView") : "interface");
   const themeBtn = th => `<button data-theme="${th.v}" class="${S.theme === th.v ? "on" : ""}" aria-pressed="${S.theme === th.v}" ${th.v === "auto" ? `title="Match the connected iPod’s colour"` : ""}>
       <span class="sw ${th.v === "auto" ? "auto" : ""}" aria-hidden="true" style="--sw-tb:${th.sw[0]};--sw-side:${th.sw[1]};--sw-list:${th.sw[2]};--sw-acc:${th.sw[3]};--sw-line:${th.sw[4]}"><span class="t"></span><span class="s"></span><span class="l"></span></span>${th.l}</button>`;
-  sheet(`<div class="sheet-h">Options</div><div class="sheet-b">
-      <div class="opt-sec">Interface</div>
-      <div class="opt-row"><span class="k" style="align-self:start;margin-top:calc(19px*var(--fs))">Theme</span>
-        <div class="themes" role="group" aria-label="Theme"><div class="grp">Classic</div>${THEMES.filter(t => !t.modern).map(themeBtn).join("")}<div class="grp">Modern</div>${THEMES.filter(t => t.modern).map(themeBtn).join("")}</div>
-        <div class="opt-hint">Auto follows the colour of the connected iPod. The modern themes use flatter, simpler styling.</div></div>
-      <div class="opt-row"><label class="k" for="optScale">Interface size</label>
-        <div class="scale"><button class="stepb" data-step="-1" aria-label="Smaller">−</button>
-          <input type="range" id="optScale" min="0" max="${SCALES.length-1}" step="1" aria-valuetext="${Math.round(S.scale*100)}%">
-          <button class="stepb" data-step="1" aria-label="Larger">+</button><span class="pct" id="optPct"></span></div>
-        <div class="opt-hint">Scales everything, on top of Windows display scaling. Shortcuts: Ctrl + plus, Ctrl + minus, Ctrl + 0.</div></div>
-      <div class="opt-row"><span class="k">Text size</span>
-        <div><div class="seg big sizes" role="group" aria-label="Text size">${TEXT_SIZES.map(([v, l]) => `<button data-fs="${v}" class="${v === textScale ? "on" : ""}" style="font-size:${(12*v).toFixed(1)}px">${l}</button>`).join("")}</div></div>
-        <div class="opt-hint">Changes only the text in lists, menus and dialogs. Buttons and icons stay the same size.</div></div>
-      <div class="opt-sec">Editing</div>
-      <div class="opt-row"><span></span>
-        <label class="check"><input type="checkbox" id="optWrite" ${store.get("writeTags", true) ? "checked" : ""}>Update song files when editing info</label>
-        <div class="opt-hint">Writes changes into the songs' own tags as well as the iPod's library, so they show up in other players too.</div></div>
-      <div class="opt-sec" id="optEncoders">Encoders</div>
-      <div id="encBox"><p class="enc-main">Loading…</p></div>
+  const placeBtn = (v, label, top) => `<button data-place="${v}" class="${S.playerPos === v ? "on" : ""}" aria-pressed="${S.playerPos === v}">
+      <span class="mock" aria-hidden="true"><i class="lcdm">${top ? "<b></b><b></b><b></b>" : ""}<s></s></i><span></span><i>${top ? "" : "<b></b><b></b><b></b>"}</i></span>${label}</button>`;
+  sheet(`<div class="sheet-h">Options</div>
+    <div class="opt-body">
+      <nav class="opt-nav" role="tablist" aria-label="Options" aria-orientation="vertical">${OPT_VIEWS.map(([id, label, icon]) =>
+        `<button role="tab" id="optTab-${id}" data-optview="${id}" aria-controls="optPane-${id}"><svg aria-hidden="true"><use href="#${icon}"/></svg>${label}</button>`).join("")}</nav>
+      <section class="opt-pane" id="optPane-interface" role="tabpanel" aria-labelledby="optTab-interface">
+        <h3>Interface</h3>
+        <div class="opt-row"><span class="k" style="align-self:start;margin-top:calc(19px*var(--fs))">Theme</span>
+          <div class="themes" role="group" aria-label="Theme"><div class="grp">Classic</div>${THEMES.filter(t => !t.modern).map(themeBtn).join("")}<div class="grp">Modern</div>${THEMES.filter(t => t.modern).map(themeBtn).join("")}</div>
+          <div class="opt-hint">Auto follows the colour of the connected iPod. The modern themes use flatter, simpler styling.</div></div>
+        <div class="opt-row"><label class="k" for="optScale">Interface size</label>
+          <div class="scale"><button class="stepb" data-step="-1" aria-label="Smaller">−</button>
+            <input type="range" id="optScale" min="0" max="${SCALES.length-1}" step="1" aria-valuetext="${Math.round(S.scale*100)}%">
+            <button class="stepb" data-step="1" aria-label="Larger">+</button><span class="pct" id="optPct"></span></div>
+          <div class="opt-hint">Scales everything, on top of Windows display scaling. Shortcuts: Ctrl + plus, Ctrl + minus, Ctrl + 0.</div></div>
+        <div class="opt-row"><span class="k">Text size</span>
+          <div><div class="seg big sizes" role="group" aria-label="Text size">${TEXT_SIZES.map(([v, l]) => `<button data-fs="${v}" class="${v === textScale ? "on" : ""}" style="font-size:${(12*v).toFixed(1)}px">${l}</button>`).join("")}</div></div>
+          <div class="opt-hint">Changes only the text in lists, menus and dialogs. Buttons and icons stay the same size.</div></div>
+      </section>
+      <section class="opt-pane" id="optPane-player" role="tabpanel" aria-labelledby="optTab-player">
+        <h3>Player</h3>
+        <div class="opt-row"><span class="k" style="align-self:start;margin-top:8px">Controls</span>
+          <div class="place" role="group" aria-label="Where the player controls go">${placeBtn("top", "In the top bar", true)}${placeBtn("bottom", "In the bottom bar", false)}</div>
+          <div class="opt-hint">Where Previous, Play/Pause, Next and the volume sit. The song that’s playing is always shown in the display at the top.</div></div>
+        <div class="opt-row"><span class="k">Taskbar</span>
+          <div>Previous, Play/Pause and Next also appear under the window’s preview when you hover over Classic iPod Manager on the Windows taskbar.</div></div>
+        <div class="opt-row"><span class="k">Keyboard</span>
+          <div>Space plays or pauses · Ctrl+Left / Ctrl+Right previous / next · Ctrl+Up / Ctrl+Down volume</div></div>
+      </section>
+      <section class="opt-pane" id="optPane-editing" role="tabpanel" aria-labelledby="optTab-editing">
+        <h3>Editing</h3>
+        <div class="opt-row"><span></span>
+          <label class="check"><input type="checkbox" id="optWrite" ${store.get("writeTags", true) ? "checked" : ""}>Update song files when editing info</label>
+          <div class="opt-hint">Writes changes into the songs' own tags as well as the iPod's library, so they show up in other players too.</div></div>
+      </section>
+      <section class="opt-pane" id="optPane-encoders" role="tabpanel" aria-labelledby="optTab-encoders">
+        <h3>Encoders</h3>
+        <div id="encBox"><p class="enc-main">Loading…</p></div>
+      </section>
     </div>
-    <div class="sheet-f"><div class="left"><button class="btn" data-reset>Restore Defaults</button></div><button class="btn primary" data-ok>Done</button></div>`,
+    <div class="sheet-f"><div class="left"><button class="btn" data-reset title="Theme, sizes, player controls, editing and list columns">Restore Defaults</button></div><button class="btn primary" data-ok>Done</button></div>`,
   (v, close) => {
+    v.querySelector(".sheet").classList.add("opts");
+    const show = id => {
+      v.querySelectorAll("[data-optview]").forEach(b => { const on = b.dataset.optview === id; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; });
+      v.querySelectorAll(".opt-pane").forEach(p => p.hidden = p.id !== "optPane-" + id);
+      store.set("optView", id);
+    };
+    const tabs = [...v.querySelectorAll("[data-optview]")];
+    tabs.forEach((b, i) => {
+      b.onclick = () => show(b.dataset.optview);
+      b.onkeydown = e => {
+        const d = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        const n = tabs[(i + d + tabs.length) % tabs.length]; show(n.dataset.optview); n.focus();
+      };
+    });
+    show(view0);
     syncScaleUI();
     const r = v.querySelector("#optScale");
     r.addEventListener("input", () => { const sc = SCALES[+r.value]; S.scale = sc; $("#optPct").textContent = Math.round(sc*100) + "%"; r.setAttribute("aria-valuetext", Math.round(sc*100) + "%"); applyScale(sc); });
@@ -884,6 +961,8 @@ function openOptions(section){
       S.theme = b.dataset.theme; store.set("theme", S.theme); applyTheme();
       v.querySelectorAll("[data-theme]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b); });
     });
+    const paintPlace = () => v.querySelectorAll("[data-place]").forEach(x => { x.classList.toggle("on", x.dataset.place === S.playerPos); x.setAttribute("aria-pressed", x.dataset.place === S.playerPos); });
+    v.querySelectorAll("[data-place]").forEach(b => b.onclick = () => { setPlayerPos(b.dataset.place); paintPlace(); });
     v.querySelector("#optWrite").onchange = e => store.set("writeTags", e.target.checked);
     const paintSizes = () => v.querySelectorAll("[data-fs]").forEach(x => x.classList.toggle("on", +x.dataset.fs === textScale));
     v.querySelectorAll("[data-fs]").forEach(b => b.onclick = () => { applyTextSize(+b.dataset.fs, true); paintSizes(); });
@@ -894,11 +973,20 @@ function openOptions(section){
       store.set("writeTags", true); v.querySelector("#optWrite").checked = true;
       S.widths = {}; store.set("colWidths", {}); S.hidden = new Set(); store.set("hiddenCols", []); renderMain();
       applyTextSize(1, true); paintSizes();
+      setPlayerPos("top"); paintPlace();
     };
     v.querySelector("[data-ok]").onclick = close;
     renderEncoders(v.querySelector("#encBox"));
-    if (section === "encoders") setTimeout(() => { const el = v.querySelector("#optEncoders"); if (el) el.scrollIntoView({block: "start"}); }, 0);
+    const on = v.querySelector(".opt-nav .on"); if (on) on.setAttribute("autofocus", "");
   });
+}
+// The player controls sit in the top bar (left of the display) or at the
+// right of the bottom bar.
+function setPlayerPos(pos){
+  pos = pos === "bottom" ? "bottom" : "top";
+  S.playerPos = pos; store.set("playerPos", pos);
+  (pos === "bottom" ? $("#ftSlot") : $("#tbSlot")).appendChild($("#transport"));
+  document.body.classList.toggle("pbottom", pos === "bottom");
 }
 
 // Options → Encoders: one folder per format inside the main folder.
@@ -1837,8 +1925,46 @@ function paintTransport(){
   $("#pVolIcon").setAttribute("href", muted ? "#i-mute" : "#i-vol");
   $("#pMute").title = muted ? "Unmute" : "Mute";
   const vs = $("#pVol"); if (document.activeElement !== vs) vs.value = P.muted ? 0 : P.vol;
+  syncTaskbar();
+  if (navigator.mediaSession && P.cur) try { navigator.mediaSession.playbackState = playing ? "playing" : "paused"; } catch(e){}
 }
-function renderNowPlaying(){ paintTransport(); renderLCD(); renderRows(true); }
+function renderNowPlaying(){ paintTransport(); renderLCD(); renderRows(true); syncMediaSession(); }
+// Tell Windows what's playing: the buttons under the taskbar preview
+// (Windows build) follow it, and clicks come back through __podPlayer.
+let taskbarState = "";
+function syncTaskbar(){
+  const playing = !!(P.el && !P.el.paused);
+  const st = {playing, canPlay: !$("#pPlay").disabled, canPrev: !!P.cur, canNext: !!P.cur && P.idx + 1 < P.queue.length,
+    title: P.cur ? [P.cur.title || "Untitled", P.cur.artist].filter(Boolean).join(" — ") : ""};
+  const k = JSON.stringify(st);
+  if (k === taskbarState) return;
+  taskbarState = k;
+  api("playerState", st).catch(() => {});
+}
+window.__podPlayer = cmd => {
+  if (cmd === "toggle") togglePlay();
+  else if (cmd === "next") nextTrack();
+  else if (cmd === "prev") prevTrack();
+};
+// Media keys and Windows' media overlay, where the WebView supports them.
+function syncMediaSession(){
+  const ms = navigator.mediaSession; if (!ms) return;
+  try {
+    if (!P.cur){ ms.metadata = null; ms.playbackState = "none"; return; }
+    if (typeof MediaMetadata === "function") ms.metadata = new MediaMetadata({title: P.cur.title || "Untitled", artist: P.cur.artist || "", album: P.cur.album || ""});
+    ms.playbackState = P.el && !P.el.paused ? "playing" : "paused";
+  } catch(e){}
+}
+(function bindMediaSession(){
+  const ms = navigator.mediaSession; if (!ms) return;
+  const on = (a, f) => { try { ms.setActionHandler(a, f); } catch(e){} };
+  on("play", () => { if (!P.cur || P.el.paused) togglePlay(); });
+  on("pause", () => { if (P.cur && !P.el.paused) togglePlay(); });
+  on("previoustrack", prevTrack);
+  on("nexttrack", nextTrack);
+  on("stop", stopPlayback);
+  on("seekto", d => { if (P.el && d && isFinite(d.seekTime)) P.el.currentTime = d.seekTime; });
+})();
 (function bindPlayer(){
   P.vol = +store.get("volume", 0.8); if (!(P.vol >= 0 && P.vol <= 1)) P.vol = 0.8;
   P.muted = !!store.get("muted", false);
@@ -2921,6 +3047,7 @@ async function start(){
   S.sort = store.get("sort", S.sort); S.browser = store.get("browser", false);
   const cw = store.get("colWidths", {}); S.widths = cw && typeof cw === "object" && !Array.isArray(cw) ? cw : {};
   S.hidden = new Set(store.get("hiddenCols", [])); S.theme = store.get("theme", "auto");
+  setPlayerPos(store.get("playerPos", "top"));
   applyTextSize(+store.get("textSize", 1) || 1, false);
   const sc = +store.get("scale", 1) || 1;
   if (sc !== 1) applyScale(sc, true); else S.scale = 1;

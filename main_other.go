@@ -211,6 +211,7 @@ func main() {
 	methods := a.Methods()
 	// Browsers don't reveal dropped files' paths, so in dev mode dropped
 	// names are looked up in the -pick folder.
+	methods["playerState"] = func(st map[string]any) {} // taskbar preview buttons exist only on Windows
 	methods["dropNames"] = func(names []string) {
 		var paths []string
 		for _, n := range names {

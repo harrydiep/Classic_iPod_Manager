@@ -219,7 +219,17 @@ func (w *webview) callbinding(d rpcMessage) (interface{}, error) {
 	}
 }
 
+// MessageHook, when set, sees every message sent to the window before the
+// webview does; returning true means it was handled and r is the result.
+// (Classic iPod Manager: taskbar preview buttons.)
+var MessageHook func(hwnd, msg, wp, lp uintptr) (r uintptr, handled bool)
+
 func wndproc(hwnd, msg, wp, lp uintptr) uintptr {
+	if MessageHook != nil {
+		if r, ok := MessageHook(hwnd, msg, wp, lp); ok {
+			return r
+		}
+	}
 	if w, ok := getWindowContext(hwnd).(*webview); ok {
 		switch msg {
 		case w32.WMMove, w32.WMMoving:

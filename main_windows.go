@@ -48,6 +48,14 @@ func main() {
 		}
 	})
 
+	// Previous / Play / Next under the taskbar preview; clicks go to the
+	// page's player.
+	thumbs := newThumbBar(func(cmd string) {
+		q, _ := json.Marshal(cmd)
+		evalJS("window.__podPlayer&&window.__podPlayer(" + string(q) + ")")
+	})
+	webview2.MessageHook = thumbs.hook
+
 	winW, winH, minW, minH := windowSize()
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     os.Getenv("PODMANAGER_DEBUG") != "",
@@ -97,6 +105,7 @@ func main() {
 	w.SetSize(int(minW), int(minH), webview2.HintMin)
 
 	methods := a.Methods()
+	methods["playerState"] = func(st thumbState) { w.Dispatch(func() { thumbs.update(st) }) }
 	// All calls run off the UI thread; results come back through __podReply.
 	w.Bind("pm_call", func(id int, method string, args []json.RawMessage) {
 		go func() {
