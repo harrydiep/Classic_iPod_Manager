@@ -24,7 +24,7 @@ import (
 )
 
 // Version of the application.
-const Version = "1.9.0"
+const Version = "2.0.0"
 
 // Platform abstracts the operating system services the app needs.
 type Platform interface {
@@ -103,6 +103,9 @@ type DeviceInfo struct {
 	Total    uint64     `json:"total"`
 	Free     uint64     `json:"free"`
 	Open     bool       `json:"open"`
+	// Signature is how the open iPod's database is signed: "none",
+	// "hash58" (classic, nano 3G/4G), "hash72" or "hashAB".
+	Signature string `json:"signature,omitempty"`
 }
 
 // TrackView is a song as shown in the UI.
@@ -366,6 +369,9 @@ func (a *App) Library() (*Library, error) {
 	info := a.deviceInfo(d.Root)
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	// the open iPod's model, with what its database told us
+	info.Model = d.Model
+	info.Signature = d.Model.ChecksumKind().String()
 	lib := &Library{Device: info, ReadOnly: d.ReadOnly, Music: d.MusicBytes(), Video: d.VideoBytes(), Tracks: make([]TrackView, 0, len(d.DB.Tracks)), Playlists: []PlaylistView{}}
 	for _, t := range d.DB.Tracks {
 		lib.Tracks = append(lib.Tracks, view(t))
@@ -700,6 +706,10 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 			var info *media.Info
 			var video *media.VideoInfo
 			if media.IsVideo(f) {
+				if !d.Model.Video {
+					res.Errors = append(res.Errors, JobError{f, "this iPod doesn't play video"})
+					continue
+				}
 				vi, err := media.ProbeVideo(f)
 				if err != nil {
 					res.Errors = append(res.Errors, JobError{f, err.Error()})
@@ -713,6 +723,10 @@ func (a *App) addFiles(ctx context.Context, d *ipod.Device, job string, files []
 				var err error
 				if info, err = media.Probe(f); err != nil {
 					res.Errors = append(res.Errors, JobError{f, err.Error()})
+					continue
+				}
+				if why := d.Model.PlayProblem(info.Format); why != "" {
+					res.Errors = append(res.Errors, JobError{f, why})
 					continue
 				}
 			}

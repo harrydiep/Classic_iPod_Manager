@@ -1,6 +1,27 @@
 # Classic iPod Manager
 
-A native Windows app for managing the music and videos on an iPod 5th generation (iPod Video, 30/60/80 GB, including the late‑2006 "5.5G" and U2 editions) without iTunes.
+A native Windows app for managing the music and videos on an iPod without iTunes: every iPod that shows up as a drive, from the 1st generation to the iPod classic, mini, nano and shuffle. See [Supported iPods](#supported-ipods).
+
+## Supported iPods
+
+| iPod | Music and playlists | Album art | Video |
+|---|---|---|---|
+| iPod 1st–4th generation (2001–2004), iPod mini | Yes | – (no colour screen) | – |
+| iPod photo / colour display | Yes | Yes | – |
+| iPod 5th generation (Video), including the late-2006 "5.5G" and U2 | Yes | Yes | Yes |
+| iPod classic (6th generation 2007 and 2008, 7th generation 2009) | Yes, signed with the iPod's FireWire ID | Yes | Yes |
+| iPod nano 1st and 2nd generation | Yes | Yes | – |
+| iPod nano 3rd and 4th generation | Yes, signed with the iPod's FireWire ID | Yes | Yes |
+| iPod shuffle 1st–4th generation | Yes, with the shuffle's own song list (iTunesSD) | – | – |
+| iPod nano 5th, 6th and 7th generation | View and copy songs off | – | – |
+| iPod touch, iPhone, iPad | Not possible: they don't appear as a drive | | |
+
+- **Which iPod**: Classic iPod Manager reads the model number from `iPod_Control\Device\SysInfo` (or the serial number, or `SysInfoExtended`) and knows every model number Apple used for these iPods, so it names the iPod, uses the right album-art sizes, offers videos only where they play, and creates the right number of music folders when setting up an empty iPod. For a model it doesn't know, it goes by what the iPod's own database and artwork files show.
+- **Signed libraries**: the iPod classic and the 3rd and 4th generation nano only accept a music library signed with their FireWire ID (the "hash58" signature). Classic iPod Manager reads the ID from SysInfo or SysInfoExtended, or from the iPod's USB serial number, which is the same ID, and signs the library every time it saves. If it can't find the ID the iPod opens read-only, with an explanation.
+- **Newer nanos**: the 5th, 6th and 7th generation nano keep a compressed library with a signature only iTunes or Apple Music can make. Classic iPod Manager shows them and copies songs off them, but can't change them.
+- **Shuffles** have no screen and play from a separate song list, `iTunesSD`, in one of two formats (1st/2nd and 3rd/4th generation). Classic iPod Manager writes it alongside the library, and adds the play counts the shuffle recorded in `iTunesStats`.
+- **Formats**: the 1st and 2nd generation iPod and shuffle don't play Apple Lossless, and the 1st generation shuffle doesn't play AIFF; such songs are refused with a note to convert them in the Format Manager.
+- Mac-formatted (HFS+) iPods can't be read by Windows; restore them for Windows in iTunes or the Apple Devices app first.
 
 ## Features
 
@@ -19,7 +40,7 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 - Inline star ratings, search, and a Genre / Artist / Album browser.
 - The row under the mouse is highlighted, in the song list and the Format Manager.
 - Windows shows the program as **Classic iPod Manager** with its own icon in the taskbar, Alt+Tab, the title bar and Task Manager, and a pinned taskbar button keeps that name and icon.
-- The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB"), with a bar split into audio, other data and free space.
+- The bottom bar shows free space against the iPod's total capacity (for example "21.4 GB free of 74.4 GB") on the left, with a bar split into audio, other data and free space, and the number of songs, total time and size of the list on the right.
 - Copy songs back to the computer (organised as Artist\Album\NN Title), or drag them out of the window.
 - Device summary with a capacity bar, a rename option for the iPod, and safe Eject.
 - **Battery**: the battery icon at the top shows the iPod's charge. Hover over it (or Tab to it) to see the percentage and whether it is charging. Classic iPod Manager asks the iPod over its USB accessory connection, the same one car stereos use, and refreshes every minute. Click it for a Battery window with a step-by-step report you can copy, which shows where the request fails if your iPod doesn't answer.
@@ -30,7 +51,7 @@ A native Windows app for managing the music and videos on an iPod 5th generation
 
 Open **Videos** under the iPod in the sidebar. Inside it are **Movies**, **TV Shows** and **Music Videos**, matching the iPod's own Videos menu. **Add Videos** picks video files, **Add Folder** adds every video in a folder, and you can drag videos onto the window. Videos added while one of the three sections is open are filed in that section on the iPod. Added from **Videos** itself, a video goes where its own iTunes tag says (TV show or music video), otherwise to Movies. To move videos to another section, drag them onto it in the sidebar or right-click → **Move to**. Select videos and press Delete (or right-click) to remove them.
 
-The iPod 5th generation plays MPEG-4 videos: H.264 Baseline up to 640×480 or MPEG-4 up to 480×480, with AAC sound. Videos that already fit are copied as they are. Anything else (HD video, H.264 High profile, MKV, AVI, WMV, QuickTime .mov, MP3 sound and so on) is converted with FFmpeg first, to 640×480 H.264 with AAC sound, and you're asked before it starts. This needs `ffmpeg.exe` in one of the encoder folders (the Decoder folder is the natural place). Converted copies are kept in the main folder's `Converted Videos` folder. The original iPod 5G (not the late-2006 5.5G) needs firmware 1.2 or later for 640×480 video.
+Videos are offered on the iPods that play them: the 5th generation, the classic and the 3rd–5th generation nano. They play MPEG-4 videos: H.264 Baseline up to 640×480 or MPEG-4 up to 480×480, with AAC sound. Videos that already fit are copied as they are. Anything else (HD video, H.264 High profile, MKV, AVI, WMV, QuickTime .mov, MP3 sound and so on) is converted with FFmpeg first, to 640×480 H.264 with AAC sound, and you're asked before it starts. This needs `ffmpeg.exe` in one of the encoder folders (the Decoder folder is the natural place). Converted copies are kept in the main folder's `Converted Videos` folder. The original iPod 5G (not the late-2006 5.5G) needs firmware 1.2 or later for 640×480 video.
 
 Each video gets a thumbnail for the iPod's menus: its own cover picture if it has one, otherwise a frame from about a tenth of the way in (with FFmpeg). In Get Info, **Video kind** also changes the section. TV shows are grouped by their Album name.
 
@@ -49,7 +70,7 @@ Smart playlists, On-The-Go playlists and Podcasts come from the iPod or iTunes a
 
 ## Playback
 
-Double-click a song to play it, or select songs and press Space. The songs after it in the list play next. The controls are left of the display: previous (restarts the song if it's more than three seconds in), play/pause and next, then volume and mute. **Options → Player** moves them to the right-hand end of the bottom bar instead.
+Double-click a song to play it, or select songs and press Space. The songs after it in the list play next. The controls are left of the display: previous (restarts the song if it's more than three seconds in), play/pause and next, then volume and mute. **Options → Player** moves them to the middle of the bottom bar instead.
 
 Hovering over Classic iPod Manager's button on the Windows taskbar shows Previous, Play/Pause and Next under the window's preview, as media players do, and the preview's tooltip names the playing song. The buttons follow Windows' light or dark taskbar. Keyboard: Space play/pause, Ctrl+Left / Ctrl+Right previous / next, Ctrl+Up / Ctrl+Down volume. The mouse wheel over the controls also changes the volume.
 
@@ -68,6 +89,7 @@ Add songs from the computer (Add Files, Add Folder, or drag them onto the window
   - Songs from the iPod are first copied to `iPod Originals\Artist\Album`, then converted and replaced on the iPod, keeping their play counts, ratings and playlists. FLAC and Ogg can't play on an iPod, so iPod songs converted to those are only copied.
   - Songs from the computer stay as they are; tick **Add converted computer songs to the iPod** to put the new versions on the iPod.
   - A copy of every converted song goes to `Converted Music\Artist\Album`.
+  - **Details: Choose…** under Convert to picks which details are copied into the converted files: name, artist, album artist, album, genre, year, track and disc numbers, composer, grouping, comments, BPM, compilation and album artwork. Unticked ones are left out of the new files (the copies are still filed by artist and album). Songs on the iPod keep their details in the iPod's own library so they still list properly. The choice is remembered.
   - Songs going to the iPod are kept within what it can play (16-bit, up to 48 kHz, stereo).
 
 ### Main folder and encoders
@@ -94,7 +116,7 @@ Put an encoder into its folder (or a folder inside it, as it comes out of its zi
 
 - Windows 10 or 11 (64-bit). The Microsoft Edge WebView2 Runtime ships with both.
 - An iPod formatted for Windows (FAT32). A Mac-formatted iPod has to be restored for Windows first, in iTunes or the Apple Devices app.
-- iPod classic 6th/7th generation and newer iPods sign their database with a checksum. Classic iPod Manager detects these and opens them read-only. You can still browse them and copy songs off them.
+- Any iPod that appears as a drive (see [Supported iPods](#supported-ipods)).
 
 ## Using it
 
@@ -131,11 +153,11 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 
 | Path | What it does |
 |---|---|
-| `internal/itdb` | Reads and writes the iTunesDB, including library sort indexes, Play Counts and On-The-Go playlists |
+| `internal/itdb` | Reads and writes the iTunesDB, including library sort indexes, album and artist lists, Play Counts and On-The-Go playlists |
 | `internal/media` | Reads audio files of any common format (length, bit rate, tags, artwork) and writes tags and artwork (ID3v2, MP4, FLAC, Ogg Vorbis/Opus) |
 | `internal/convert` | Finds encoders in their folders, runs decode → encode → tag conversions, and converts videos for the iPod with FFmpeg |
 | `internal/iap` | Just enough of the iPod Accessory Protocol to ask for the battery level over USB |
-| `internal/ipod` | iPod layout, model detection, safe saving with backups, file naming, writing the iPod's artwork database |
+| `internal/ipod` | iPod layout, model detection for every generation (`model.go`, `models_gen.go`), safe saving with backups, the hash58 signature (`hash58.go`), the shuffle's iTunesSD (`shuffle.go`), file naming, writing the iPod's artwork database |
 | `internal/app` | Operations the UI calls, background jobs with progress and transfer speed, playlists, and the playback server |
 | `ui/index.html` | The interface (embedded in the exe) |
 | `*_windows.go` | Window, native file dialogs, drive detection, eject, interface zoom, dragging songs out to Explorer, the taskbar identity and preview media buttons (glyphs drawn in `glyphs.go`), the iPod's USB accessory (HID) interface for the battery |
@@ -143,11 +165,14 @@ On Linux or macOS, `go run . -roots /path/to/mounted/ipod -pick /path/to/music` 
 
 ## Limitations
 
-- Classic iPod Manager writes album art to the iPod's cover database for the 5th generation iPod only (the formats it uses are known); other models are read-only anyway.
+- The 5th–7th generation nano can only be viewed and copied from (their libraries need iTunes' own signatures). Photos and the shuffle's spoken VoiceOver menus aren't managed.
 - Podcasts and audiobooks aren't managed separately. .m4b files are added as audiobooks.
 - Smart playlists can't be created or edited.
+- The iPod classic and nano 3G/4G signature and the shuffle song lists follow libgpod's documented formats (the signature is checked against libgpod's own output in the tests); they haven't been tried on every model.
 - Playback in the app uses the WebView's own players: MPEG-4 Part 2 videos (rather than H.264) may not play in the app even though they play on the iPod.
 - Classic iPod Manager doesn't include encoders; put the ones you want to use in the encoder folders (see Format Manager).
 - The battery reading depends on the iPod answering over its USB accessory interface. If it doesn't, the battery icon still shows full and green while the iPod is connected, and the popover says the level is unavailable. Some firmware reports no level while charging; then only "Charging" is shown.
+
+The model list, the iPod classic signature (hash58) and the shuffle formats come from [libgpod](https://sourceforge.net/projects/gtkpod/) (the hash58 code is under libgpod's BSD-style licence, reproduced in `internal/ipod/hash58.go`).
 
 Classic iPod Manager was called PodManager up to version 1.5. Settings and backups from the old name are moved over automatically the first time it runs.

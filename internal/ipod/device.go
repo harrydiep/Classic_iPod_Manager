@@ -3,7 +3,8 @@
 package ipod
 
 import (
-	"bufio"
+	"bytes"
+	"compress/zlib"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
@@ -20,37 +21,6 @@ import (
 	"podmanager/internal/itdb"
 )
 
-// Model describes a recognised iPod.
-type Model struct {
-	Number     string `json:"number"`
-	Name       string `json:"name"`
-	Generation string `json:"generation"`
-	CapacityGB int    `json:"capacityGB"`
-	Color      string `json:"color"` // white, black, u2, silver
-	Supported  bool   `json:"supported"`
-}
-
-var models = map[string]Model{
-	"A002": {"A002", "iPod 30GB", "5th generation", 30, "white", true},
-	"A146": {"A146", "iPod 30GB", "5th generation", 30, "black", true},
-	"A003": {"A003", "iPod 60GB", "5th generation", 60, "white", true},
-	"A147": {"A147", "iPod 60GB", "5th generation", 60, "black", true},
-	"A452": {"A452", "iPod U2 Special Edition 30GB", "5th generation", 30, "u2", true},
-	"A444": {"A444", "iPod 30GB", "5th generation (late 2006)", 30, "white", true},
-	"A446": {"A446", "iPod 30GB", "5th generation (late 2006)", 30, "black", true},
-	"A664": {"A664", "iPod U2 Special Edition 30GB", "5th generation (late 2006)", 30, "u2", true},
-	"A448": {"A448", "iPod 80GB", "5th generation (late 2006)", 80, "white", true},
-	"A450": {"A450", "iPod 80GB", "5th generation (late 2006)", 80, "black", true},
-	"B029": {"B029", "iPod classic 80GB", "6th generation", 80, "silver", false},
-	"B147": {"B147", "iPod classic 80GB", "6th generation", 80, "black", false},
-	"B145": {"B145", "iPod classic 160GB", "6th generation", 160, "silver", false},
-	"B150": {"B150", "iPod classic 160GB", "6th generation", 160, "black", false},
-	"B562": {"B562", "iPod classic 120GB", "6th generation (2008)", 120, "silver", false},
-	"B565": {"B565", "iPod classic 120GB", "6th generation (2008)", 120, "black", false},
-	"C293": {"C293", "iPod classic 160GB", "7th generation", 160, "silver", false},
-	"C297": {"C297", "iPod classic 160GB", "7th generation", 160, "black", false},
-}
-
 // Device is an opened iPod.
 type Device struct {
 	Root     string
@@ -58,6 +28,9 @@ type Device struct {
 	Model    Model
 	Firmware string
 	ReadOnly string // non-empty: reason the database must not be written
+	// FirewireID signs the database of iPods that need hash58.
+	FirewireID string
+	compressed bool // read from iTunesCDB
 
 	backupDir string
 	backedUp  bool
@@ -65,6 +38,9 @@ type Device struct {
 
 	artOnce sync.Once
 	art     map[uint64][]thumbRef
+
+	unknownArtOnce sync.Once
+	unknownArt     []ArtFormat
 
 	artw        *artDB // ArtworkDB loaded for writing
 	artDirty    bool
@@ -89,42 +65,68 @@ func HasDatabase(root string) bool {
 	return err == nil
 }
 
-// ReadModel reads iPod_Control/Device/SysInfo.
-func ReadModel(root string) (Model, string) {
-	var m Model
-	fw := ""
-	f, err := os.Open(filepath.Join(root, "iPod_Control", "Device", "SysInfo"))
+// SerialLookup, when set, returns the USB serial number of the drive at
+// root. iPods report their FireWire ID as their serial number, which is how
+// it's found when SysInfo doesn't list it. (Set by the Windows build.)
+var SerialLookup func(root string) string
+
+// firewireID finds the iPod's FireWire ID: SysInfo, SysInfoExtended, or the
+// drive's USB serial number.
+func firewireID(root string) string {
+	if id := firewireIDFromFiles(root); id != "" {
+		return id
+	}
+	if SerialLookup != nil {
+		s := strings.TrimSpace(SerialLookup(root))
+		if len(s) == 16 {
+			if _, err := parseFirewireID(s); err == nil {
+				return strings.ToUpper(s)
+			}
+		}
+	}
+	return ""
+}
+
+// readDB reads the iTunesDB, or the compressed iTunesCDB that the 5th
+// generation nano and later keep instead.
+func (d *Device) readDB() ([]byte, error) {
+	data, err := os.ReadFile(d.dbPath())
+	if err == nil || !errors.Is(err, os.ErrNotExist) {
+		return data, err
+	}
+	c, cerr := os.ReadFile(filepath.Join(d.itunesDir(), "iTunesCDB"))
+	if cerr != nil {
+		return nil, err
+	}
+	d.compressed = true
+	return inflateCDB(c)
+}
+
+// inflateCDB expands an iTunesCDB: an mhbd header followed by the rest of
+// the database compressed with zlib.
+func inflateCDB(c []byte) ([]byte, error) {
+	if len(c) < 0xA9 || string(c[:4]) != "mhbd" {
+		return nil, errors.New("the iPod's compressed music database isn't valid")
+	}
+	hl := int(binary.LittleEndian.Uint32(c[4:]))
+	if hl < 0xA9 || hl > len(c) {
+		return nil, errors.New("the iPod's compressed music database isn't valid")
+	}
+	zr, err := zlib.NewReader(bytes.NewReader(c[hl:]))
 	if err != nil {
-		return Model{Name: "iPod", Supported: true}, ""
+		return nil, fmt.Errorf("the iPod's compressed music database can't be read: %w", err)
 	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		k, v, ok := strings.Cut(sc.Text(), ":")
-		if !ok {
-			continue
-		}
-		v = strings.TrimSpace(v)
-		switch strings.TrimSpace(k) {
-		case "ModelNumStr":
-			if len(v) >= 4 {
-				num := v[len(v)-4:]
-				if mm, ok := models[num]; ok {
-					m = mm
-				} else {
-					m = Model{Number: num, Name: "iPod (" + v + ")", Supported: true}
-				}
-			}
-		case "visibleBuildID":
-			if i := strings.Index(v, "("); i >= 0 {
-				fw = strings.Trim(v[i:], "()")
-			}
-		}
+	defer zr.Close()
+	body, err := io.ReadAll(io.LimitReader(zr, 1<<30))
+	if err != nil {
+		return nil, fmt.Errorf("the iPod's compressed music database can't be read: %w", err)
 	}
-	if m.Name == "" {
-		m = Model{Name: "iPod", Supported: true}
-	}
-	return m, fw
+	out := make([]byte, 0, hl+len(body))
+	out = append(out, c[:hl]...)
+	out = append(out, body...)
+	binary.LittleEndian.PutUint32(out[8:], uint32(len(out)))
+	out[0xA8] = 0 // compression flag
+	return out, nil
 }
 
 // Open loads the iPod's database. backupDir is where database backups are
@@ -132,7 +134,7 @@ func ReadModel(root string) (Model, string) {
 func Open(root, backupDir string) (*Device, error) {
 	d := &Device{Root: root, backupDir: backupDir}
 	d.Model, d.Firmware = ReadModel(root)
-	data, err := os.ReadFile(d.dbPath())
+	data, err := d.readDB()
 	if errors.Is(err, os.ErrNotExist) {
 		return d, ErrNoDatabase
 	}
@@ -144,11 +146,7 @@ func Open(root, backupDir string) (*Device, error) {
 		return nil, fmt.Errorf("could not read the iPod's music database: %w", err)
 	}
 	d.DB = db
-	if !d.Model.Supported {
-		d.ReadOnly = d.Model.Name + " (" + d.Model.Generation + ") protects its database with a checksum, so Classic iPod Manager can only view it."
-	} else if hasChecksum(data) {
-		d.ReadOnly = "This iPod's database is protected with a checksum (newer iPod), so Classic iPod Manager can only view it."
-	}
+	d.checkWritable(data)
 	if pc, err := os.ReadFile(filepath.Join(d.itunesDir(), "Play Counts")); err == nil {
 		if db.MergePlayCounts(pc) == nil {
 			d.dirty = true
@@ -165,36 +163,53 @@ func Open(root, backupDir string) (*Device, error) {
 			d.dirty = true
 		}
 	}
-	return d, nil
-}
-
-func hasChecksum(db []byte) bool {
-	if len(db) < 12 {
-		return false
-	}
-	hl := int(binary.LittleEndian.Uint32(db[4:]))
-	if hl > len(db) {
-		return false
-	}
-	if hl >= 0x32 && binary.LittleEndian.Uint16(db[0x30:]) == 1 { // hash58 scheme marker
-		return true
-	}
-	if hl >= 0x6C {
-		for _, b := range db[0x58:0x6C] { // hash58 bytes
-			if b != 0 {
-				return true
+	if d.Model.shuffleDB > 0 {
+		if b, err := os.ReadFile(filepath.Join(d.itunesDir(), "iTunesStats")); err == nil && len(b) > 0 {
+			if mergeShuffleStats(db, b, d.Model.shuffleDB == 1) {
+				d.dirty = true
 			}
 		}
 	}
-	if hl >= 0x72 && binary.LittleEndian.Uint16(db[0x70:]) != 0 { // hash72 / hashAB scheme
-		return true
+	return d, nil
+}
+
+// checkWritable decides whether Classic iPod Manager may change this iPod,
+// and explains why not.
+func (d *Device) checkWritable(data []byte) {
+	m := &d.Model
+	// For iPods the model table doesn't know, the database itself says how
+	// it's signed.
+	if c := dbChecksum(data); c > m.checksum {
+		m.checksum = c
 	}
-	return false
+	what := m.Name
+	if m.Generation != "" {
+		what += " (" + m.Generation + ")"
+	}
+	switch {
+	case d.compressed:
+		d.ReadOnly = what + " keeps its library in a newer, compressed database that only iTunes or Apple Music can write, so Classic iPod Manager can show it and copy songs off it, but not change it."
+	case m.checksum == ChecksumHash72 || m.checksum == ChecksumHashAB:
+		d.ReadOnly = what + " protects its library with a signature only iTunes or Apple Music can make, so Classic iPod Manager can show it and copy songs off it, but not change it."
+	case !m.Supported:
+		d.ReadOnly = what + " can't be changed by Classic iPod Manager."
+	case m.checksum == ChecksumHash58:
+		d.FirewireID = firewireID(d.Root)
+		if d.FirewireID == "" {
+			d.ReadOnly = what + " checks a signature made from its FireWire ID before it accepts changes, and Classic iPod Manager couldn't read the ID. " +
+				"Add a line \"FirewireGuid: 0x…\" with the iPod's 16-digit ID to iPod_Control\\Device\\SysInfo on the iPod, or connect it once to iTunes or Apple Music, which writes SysInfoExtended."
+		}
+	}
 }
 
 // Initialize creates the folder structure and an empty database.
 func Initialize(root, name, backupDir string) (*Device, error) {
-	for i := 0; i < 50; i++ {
+	m, _ := ReadModel(root)
+	dirs := m.musicDirs
+	if dirs <= 0 {
+		dirs = 20
+	}
+	for i := 0; i < dirs; i++ {
 		if err := os.MkdirAll(filepath.Join(root, "iPod_Control", "Music", fmt.Sprintf("F%02d", i)), 0o755); err != nil {
 			return nil, err
 		}
@@ -206,6 +221,10 @@ func Initialize(root, name, backupDir string) (*Device, error) {
 	}
 	d := &Device{Root: root, backupDir: backupDir, DB: itdb.New(name)}
 	d.Model, d.Firmware = ReadModel(root)
+	d.checkWritable(nil)
+	if d.ReadOnly != "" {
+		return nil, errors.New(d.ReadOnly)
+	}
 	return d, d.Save()
 }
 
@@ -240,28 +259,26 @@ func (d *Device) Save() error {
 		return fmt.Errorf("could not update the iPod's album art: %w", err)
 	}
 	data := d.DB.Bytes()
-	tmp := d.dbPath() + ".podmanager-new"
-	f, err := os.Create(tmp)
-	if err != nil {
+	if d.Model.checksum == ChecksumHash58 {
+		if err := signHash58(data, d.FirewireID); err != nil {
+			return fmt.Errorf("could not sign the database for this iPod: %w", err)
+		}
+	}
+	if err := writeAtomic(d.dbPath(), data); err != nil {
 		return err
 	}
-	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(tmp)
-		return err
-	}
-	if err := f.Sync(); err != nil {
-		f.Close()
-		os.Remove(tmp)
-		return err
-	}
-	if err := f.Close(); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	if err := os.Rename(tmp, d.dbPath()); err != nil {
-		os.Remove(tmp)
-		return err
+	// the shuffle plays from iTunesSD; its old stats and play order belong
+	// to the previous song list
+	if d.Model.shuffleDB > 0 {
+		sd := itunesSDv1(d.DB)
+		if d.Model.shuffleDB == 2 {
+			sd = itunesSDv2(d.DB)
+		}
+		if err := writeAtomic(filepath.Join(d.itunesDir(), "iTunesSD"), sd); err != nil {
+			return fmt.Errorf("could not write the shuffle's song list: %w", err)
+		}
+		os.Remove(filepath.Join(d.itunesDir(), "iTunesStats"))
+		os.Remove(filepath.Join(d.itunesDir(), "iTunesShuffle"))
 	}
 	if d.dirty {
 		pc := filepath.Join(d.itunesDir(), "Play Counts")
@@ -401,7 +418,9 @@ var fwGUIDExt = regexp.MustCompile(`(?s)<key>FireWireGUID</key>\s*<string>(?:0x)
 // SysInfoExtended, upper-case hex without "0x". The iPod also reports it as
 // its USB serial number, which is how its USB interfaces are matched to the
 // drive. Empty if unknown.
-func FirewireGUID(root string) string {
+func FirewireGUID(root string) string { return firewireID(root) }
+
+func firewireIDFromFiles(root string) string {
 	dev := filepath.Join(root, "iPod_Control", "Device")
 	if b, err := os.ReadFile(filepath.Join(dev, "SysInfo")); err == nil {
 		for _, line := range strings.Split(string(b), "\n") {

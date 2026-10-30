@@ -196,6 +196,9 @@ type videoCheck struct {
 // checkVideo decides whether a video can go on the iPod: as it is, after
 // converting it with FFmpeg, or not at all (Reason says why).
 func (a *App) checkVideo(path string, haveFFmpeg bool) videoCheck {
+	if !a.playsVideo() {
+		return videoCheck{Reason: "this iPod doesn't play video"}
+	}
 	vi, err := media.ProbeVideo(path)
 	if err != nil {
 		return videoCheck{Reason: "couldn't be read: " + err.Error()}
@@ -207,4 +210,12 @@ func (a *App) checkVideo(path string, haveFFmpeg bool) videoCheck {
 		return videoCheck{convert: true}
 	}
 	return videoCheck{Reason: vi.Reason + " – put ffmpeg.exe in " + a.encoderConfig().Dir("decoder") + " to convert it"}
+}
+
+// playsVideo reports whether the open iPod plays video (true when none is
+// open, so checks don't refuse too early).
+func (a *App) playsVideo() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.dev == nil || a.dev.Model.Video
 }

@@ -87,3 +87,20 @@ func (db *DB) ImportOTG(data []byte, name string) (bool, error) {
 	db.Playlists = append(db.Playlists, &Playlist{header: ph, Name: name, Items: items})
 	return true, nil
 }
+
+// Fields the iPod shuffle's iTunesSD repeats.
+func (t *Track) Volume() int32           { return int32(t.u32(0x40)) }
+func (t *Track) StartMs() uint32         { return t.u32(0x44) }
+func (t *Track) StopMs() uint32          { return t.u32(0x48) }
+func (t *Track) BookmarkMs() uint32      { return t.u32(0x6C) }
+func (t *Track) SetBookmarkMs(v uint32)  { t.setU32(0x6C, v) }
+func (t *Track) SkipWhenShuffling() bool { return t.u8(0xA5) != 0 }
+func (t *Track) RememberPosition() bool  { return t.u8(0xA6) != 0 }
+func (t *Track) Pregap() uint32          { return t.u32(0xB8) }
+func (t *Track) SampleCount() uint64     { return t.u64(0xBC) }
+func (t *Track) Postgap() uint32         { return t.u32(0xC8) }
+func (t *Track) GaplessData() uint32     { return t.u32(0xF8) }
+
+// AddPlays and AddSkips add to the play and skip counts.
+func (t *Track) AddPlays(n uint32) { t.setU32(0x50, t.PlayCount()+n); t.setU32(0x54, t.u32(0x54)+n) }
+func (t *Track) AddSkips(n uint32) { t.setU32(0x9C, t.SkipCount()+n) }

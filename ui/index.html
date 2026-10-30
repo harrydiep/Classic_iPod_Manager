@@ -61,7 +61,8 @@ button{cursor:default}
 .spacer{width:10px}
 /* playback controls, left of the LCD */
 .tbslot{display:flex;justify-content:flex-end;align-items:center}
-.ftslot{display:flex;justify-content:flex-end;align-items:center;padding:0 10px;min-width:0}
+.ftslot{display:flex;justify-content:center;align-items:center;padding:0 10px}
+.ftslot:empty{padding:0}
 .transport{display:flex;align-items:center;justify-content:flex-end;gap:5px}
 /* in the bottom bar: the same controls, smaller */
 .ftslot .transport{gap:4px}
@@ -293,10 +294,10 @@ body.pbottom .footer{height:calc(32px*var(--fs))}
 .btn:disabled{opacity:.5}
 
 /* footer */
-.footer{display:grid;grid-template-columns:minmax(calc(var(--sidebar,212px)*var(--fs)),max-content) 1fr minmax(calc(var(--sidebar,212px)*var(--fs)),max-content);align-items:center;height:calc(30px*var(--fs));border-top:1px solid var(--alu-line);
+.footer{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;height:calc(30px*var(--fs));border-top:1px solid var(--alu-line);
   background:linear-gradient(var(--alu-top),var(--alu-bot));box-shadow:inset 0 1px 0 var(--alu-hi);font-size:calc(11.5px*var(--fs))}
-.footer .stats{text-align:center;color:var(--text)}
-.footer .mini{display:flex;align-items:center;gap:8px;padding:0 12px;white-space:nowrap}
+.footer .stats{text-align:right;color:var(--text);padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.footer .mini{display:flex;align-items:center;gap:8px;padding:0 12px;white-space:nowrap;min-width:0;overflow:hidden}
 .captext b{font-weight:600}
 .minibar{flex:1;min-width:48px;max-width:140px;height:9px;border-radius:5px;overflow:hidden;display:flex;background:var(--free);border:1px solid #8b939c}
 .minibar i{display:block;height:100%}
@@ -544,6 +545,10 @@ body.ldragging,body.ldragging *{cursor:default!important}
 .enc-line.bad{color:var(--danger)}
 .linkbtn{border:0;background:none;color:var(--focus);padding:0;font-size:inherit;text-decoration:underline;cursor:pointer}
 .fm-help{font-size:calc(11px*var(--fs));color:var(--muted);margin:8px 0 0;line-height:1.45}
+.fm-keep{font-size:calc(11.5px*var(--fs));color:var(--muted);margin-top:6px}
+.fm-keep b{font-weight:600;color:var(--text)}
+.fm-keep.some b{color:var(--focus)}
+.keep-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
 .fm-side .check{margin-top:8px}
 @media (max-width:1000px){.fm-body{grid-template-columns:minmax(0,1fr) calc(290px*var(--fs))}.fm-head,.fm-row{grid-template-columns:24px minmax(100px,2fr) minmax(64px,1fr) calc(84px*var(--fs)) calc(68px*var(--fs)) calc(48px*var(--fs)) minmax(60px,1fr)}.fm-head span:nth-child(4),.fm-row>span:nth-child(4),.fm-head span:nth-child(6),.fm-row>span:nth-child(6){display:none}}
 
@@ -768,8 +773,8 @@ body.ldragging,body.ldragging *{cursor:default!important}
 
   <footer class="footer">
     <div class="mini" id="miniCap"></div>
-    <div class="stats" id="stats"></div>
     <div class="ftslot" id="ftSlot"></div>
+    <div class="stats" id="stats"></div>
   </footer>
 </div>
 
@@ -1272,10 +1277,13 @@ function renderSidebar(){
     if (open){
       const n = libCounts();
       h += `<div class="sitem child ${S.view === "music" ? "sel" : ""}" data-view="music"><svg><use href="#i-note"/></svg><span class="lbl">Music</span><span class="cnt">${n.songs.toLocaleString()}</span></div>`;
+      // iPods without video (before the 5th generation, minis, early nanos, shuffles) have no Videos section
+      if (S.lib.device.model.video || n.videos){
       h += `<div class="sitem child ${S.view === "videos" ? "sel" : ""}" data-view="videos"><svg><use href="#i-video"/></svg><span class="lbl">Videos</span><span class="cnt">${n.videos ? n.videos.toLocaleString() : ""}</span></div>`;
       for (const [mt, label] of VIDEO_KINDS){
         const c = S.lib.tracks.filter(t => t.video && (t.mediaType & mt)).length;
         h += `<div class="sitem child2 ${S.view === "v:" + mt ? "sel" : ""}" data-view="v:${mt}" data-vkind="${mt}" title="Videos added here are filed under ${label} on the iPod"><span class="lbl">${label}</span><span class="cnt">${c ? c.toLocaleString() : ""}</span></div>`;
+      }
       }
     }
   }
@@ -1735,9 +1743,12 @@ function summaryHTML(){
         <button class="btn" id="sEject">Eject</button>
       </div>
       <div class="notes">
-        ${L.readOnly ? `<p>${esc(L.readOnly)}</p>` : ""}
+        ${L.readOnly ? `<p>${esc(L.readOnly)}</p>` : `
         <p>Changes are saved to the iPod straight away. Eject it before unplugging so it can finish updating its menus.</p>
-        <p>Ratings and play counts from the iPod are kept, and a backup of the music database is made the first time Classic iPod Manager changes it.</p>
+        ${d.model.shuffle ? "<p>The shuffle plays from its own song list (iTunesSD), which is rewritten along with the library every time something changes.</p>" : ""}
+        ${d.signature === "hash58" ? "<p>This iPod only accepts a library signed with its FireWire ID; Classic iPod Manager signs it every time it saves.</p>" : ""}
+        ${!d.model.artwork && !d.model.shuffle ? "<p>This iPod doesn’t show album art, so covers aren’t copied to it.</p>" : ""}
+        <p>Ratings and play counts from the iPod are kept, and a backup of the music database is made the first time Classic iPod Manager changes it.</p>`}
       </div>
     </div></div></div>`;
 }
@@ -2668,7 +2679,40 @@ const FM = {
   items: [], byKey: new Map(), sel: new Set(), anchor: null, cursor: null, list: [],
   artCache: new Map(), encoders: null,
   format: store.get("fmFormat", "aac"), quality: store.get("fmQuality", {}), addToIPod: store.get("fmAddToIPod", true),
+  strip: store.get("fmStrip", []),
 };
+// the details the converter can leave out of new files
+const FM_STRIP = [["title","Name"],["artist","Artist"],["albumArtist","Album Artist"],["album","Album"],["genre","Genre"],["year","Year"],
+  ["track","Track number"],["disc","Disc number"],["composer","Composer"],["grouping","Grouping"],["comment","Comments"],["bpm","BPM"],
+  ["compilation","Compilation"],["artwork","Album artwork"]];
+if (!Array.isArray(FM.strip)) FM.strip = [];
+FM.strip = FM.strip.filter(k => FM_STRIP.some(x => x[0] === k));
+function fmStripSummary(){
+  const n = FM.strip.length;
+  if (!n) return "all kept";
+  if (n === FM_STRIP.length) return "none kept";
+  const names = FM_STRIP.filter(x => FM.strip.includes(x[0])).map(x => x[1]);
+  return "leaving out " + (names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`);
+}
+function fmChooseDetails(){
+  const chosen = new Set(FM_STRIP.map(x => x[0]).filter(k => !FM.strip.includes(k)));
+  sheet(`<div class="sheet-h">Details in converted files</div><div class="sheet-b">
+      <p class="fm-help" style="margin:0 0 12px">Ticked details are copied into the converted files; unticked ones are left out. Songs on the iPod keep their details in the iPod’s own library, so they still show up properly there. The copy in Converted Music is still filed by artist and album.</p>
+      <div class="keep-grid">${FM_STRIP.map(([k, l]) => `<label class="check"><input type="checkbox" data-k="${k}" ${chosen.has(k) ? "checked" : ""}>${l}</label>`).join("")}</div></div>
+    <div class="sheet-f"><div class="left"><button class="btn" data-all>Keep All</button><button class="btn" data-none>Remove All</button></div>
+      <button class="btn" data-c>Cancel</button><button class="btn primary" data-ok>Done</button></div>`,
+  (v, close) => {
+    const boxes = [...v.querySelectorAll("[data-k]")];
+    v.querySelector("[data-all]").onclick = () => boxes.forEach(b => b.checked = true);
+    v.querySelector("[data-none]").onclick = () => boxes.forEach(b => b.checked = false);
+    v.querySelector("[data-c]").onclick = close;
+    v.querySelector("[data-ok]").onclick = () => {
+      FM.strip = boxes.filter(b => !b.checked).map(b => b.dataset.k);
+      store.set("fmStrip", FM.strip);
+      close(); fmRenderSide();
+    };
+  });
+}
 const FM_FIELDS = [
   ["title","Name","text"],["artist","Artist","text"],["albumArtist","Album Artist","text"],["album","Album","text"],
   ["genre","Genre","genre"],["year","Year","num"],["track","Track","pair"],["disc","Disc","pair"],
@@ -2937,6 +2981,7 @@ function fmRenderSide(){
       ${f.builtin ? `<div class="enc-line ok">Written by Classic iPod Manager – no encoder needed${f.id === "wav" || f.id === "aiff" ? ". " + esc(f.label) + " files can’t hold details or artwork" : ""}.</div>`
         : st.active ? `<div class="enc-line ok">Encoder: <b>${esc(st.active)}</b>${st.from ? ` (from the ${esc(st.from)} folder)` : ""} · <button class="linkbtn" data-open="${st.from ? (FM.encoders.encoders.find(x => x.label === st.from) || {}).id || f.id : f.id}">Show folder</button></div>`
         : `<div class="enc-line bad">No ${esc(f.label)} encoder found. Put ${esc(f.hint)} in the <button class="linkbtn" data-open="${f.id}">${esc((st.folder || "").split(/[\\/]/).pop() || f.label)} folder</button> or choose one in <button class="linkbtn" data-opts>Options</button>.</div>`}
+      ${f.id === "wav" || f.id === "aiff" ? "" : `<div class="fm-keep ${FM.strip.length ? "some" : ""}">Details: <b>${esc(fmStripSummary())}</b> · <button class="linkbtn" id="fmKeep" ${busy ? "disabled" : ""}>Choose…</button></div>`}
       <label class="check" ${canAdd ? "" : `title="${f.ipod ? "Connect an iPod to add songs to it" : esc(f.label) + " can’t play on an iPod"}"`}><input type="checkbox" id="fmAddIPod" ${FM.addToIPod && canAdd ? "checked" : ""} ${canAdd && !busy ? "" : "disabled"}>Add converted computer songs to the iPod</label>
       <p class="fm-help">${fromIPod ? (f.ipod ? "iPod songs are backed up to <button class=\"linkbtn\" data-open=\"originals\">iPod Originals</button>, then replaced on the iPod. " : `${esc(f.label)} can’t play on an iPod, so iPod songs stay as they are. `) : ""}Copies go to <button class="linkbtn" data-open="converted">Converted Music</button>.</p>`;
   }
@@ -2953,6 +2998,8 @@ function fmBindSide(side, sel){
   if (fs) fs.onchange = () => { FM.format = fs.value; store.set("fmFormat", FM.format); fmRenderSide(); };
   const qs = side.querySelector("#fmQuality");
   if (qs) qs.onchange = () => { FM.quality[FM.format] = qs.value; store.set("fmQuality", FM.quality); };
+  const kp = side.querySelector("#fmKeep");
+  if (kp) kp.onclick = fmChooseDetails;
   const ai = side.querySelector("#fmAddIPod");
   if (ai) ai.onchange = () => { FM.addToIPod = ai.checked; store.set("fmAddToIPod", ai.checked); };
   side.querySelector("#fmSave").onclick = () => fmRun(false);
@@ -3026,7 +3073,7 @@ async function fmRun(convert){
   items = items.filter(i => !i.error);
   if (!items.length) return;
   const req = {
-    convert, format: FM.format, quality: FM.quality[FM.format] || "", addToIPod: !!($("#fmAddIPod") && $("#fmAddIPod").checked),
+    convert, format: FM.format, quality: FM.quality[FM.format] || "", strip: convert ? FM.strip : [], addToIPod: !!($("#fmAddIPod") && $("#fmAddIPod").checked),
     items: items.map(it => {
       const patch = {};
       for (const [k, v] of Object.entries(it.edits || {})) patch[k] = v;
@@ -3171,6 +3218,7 @@ function setLib(lib){
 async function reload(){
   try { setLib(await api("library")); } catch(e){ setLib(null); }
   if (isPlView() && !curPlaylist()) S.view = "music";
+  if (isVideoView() && S.lib && !S.lib.device.model.video && !libCounts().videos) S.view = "music";
   renderAll();
 }
 async function openDevice(root){

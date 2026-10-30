@@ -115,6 +115,14 @@ type DB struct {
 	header    []byte
 	Tracks    []*Track
 	Playlists []*Playlist // Playlists[0] is the master (library) playlist
+	// sections kept as they were read: type 5 (the iPod's own special
+	// playlists) and 9 (Genius); types 4, 6, 8 and 10 are rebuilt
+	kept []keptSection
+}
+
+type keptSection struct {
+	typ  uint32
+	body []byte // everything after the mhsd header
 }
 
 var le = binary.LittleEndian
@@ -659,6 +667,10 @@ func Parse(data []byte) (*DB, error) {
 			plType2 = body
 		case 3:
 			plType3 = body
+		case 4, 6, 8, 10:
+			// album, artist and empty lists: rebuilt when writing
+		default:
+			db.kept = append(db.kept, keptSection{styp, append([]byte(nil), body...)})
 		}
 		off += stot
 	}
@@ -856,11 +868,149 @@ func writeStringMhod(w *buf, typ uint32, s string) {
 	}
 }
 
+// Album and artist lists (mhsd types 4 and 8), as iTunes and libgpod write
+// them: the iPod classic and nano use them for their Albums and Artists
+// menus and Cover Flow. Each track refers to its album at mhit+0x120 and to
+// its artist at +0x1E0.
+type listEntry struct {
+	id      uint32
+	strs    [][2]interface{} // mhod type, string
+	sqlID   uint64
+	isAlbum bool
+}
+
+// assignListIDs numbers the albums and artists and records the numbers in
+// the tracks. Tracks get the full-size mhit header iTunes writes.
+func (db *DB) assignListIDs() (albums, artists []listEntry) {
+	albumIDs := map[string]uint32{}
+	artistIDs := map[string]uint32{}
+	composerIDs := map[string]uint32{}
+	for _, t := range db.Tracks {
+		if len(t.header) < 0x248 {
+			h := make([]byte, 0x248)
+			copy(h, t.header)
+			le.PutUint32(h[4:], 0x248)
+			t.header = h
+		}
+		var albumID, artistID, composerID uint32
+		if al := t.Str(MhodAlbum); al != "" {
+			who := t.Str(MhodAlbumArtist)
+			if who == "" {
+				who = t.Str(MhodArtist)
+			}
+			key := t.Str(MhodTVShow) + "\x00" + al + "\x00" + who
+			if id, ok := albumIDs[key]; ok {
+				albumID = id
+			} else {
+				albumID = uint32(len(albums) + 1)
+				albumIDs[key] = albumID
+				e := listEntry{id: albumID, sqlID: listSQLID(key), isAlbum: true}
+				e.strs = append(e.strs, [2]interface{}{uint32(200), al})
+				if who != "" {
+					e.strs = append(e.strs, [2]interface{}{uint32(201), who})
+				}
+				sortWho := t.Str(MhodSortAlbumArtist)
+				if sortWho == "" {
+					sortWho = t.Str(MhodSortArtist)
+				}
+				if sortWho != "" {
+					e.strs = append(e.strs, [2]interface{}{uint32(202), sortWho})
+				}
+				albums = append(albums, e)
+			}
+		}
+		if ar := t.Str(MhodArtist); ar != "" {
+			if id, ok := artistIDs[ar]; ok {
+				artistID = id
+			} else {
+				artistID = uint32(len(artists) + 1)
+				artistIDs[ar] = artistID
+				artists = append(artists, listEntry{id: artistID, sqlID: listSQLID("artist\x00" + ar),
+					strs: [][2]interface{}{{uint32(300), ar}}})
+			}
+		}
+		if c := t.Str(MhodComposer); c != "" {
+			if id, ok := composerIDs[c]; ok {
+				composerID = id
+			} else {
+				composerID = uint32(len(composerIDs) + 1)
+				composerIDs[c] = composerID
+			}
+		}
+		t.setU32(0x120, albumID)
+		t.setU32(0x1E0, artistID)
+		t.setU32(0x1F4, composerID)
+	}
+	return albums, artists
+}
+
+// AlbumID and ArtistID are the numbers given by the last Bytes call (used
+// by the shuffle's iTunesSD).
+func (t *Track) AlbumID() uint32  { return t.u32(0x120) }
+func (t *Track) ArtistID() uint32 { return t.u32(0x1E0) }
+
+// listSQLID is a stable 64-bit id for an album or artist (iTunes uses
+// random ones for its own database; stable ones keep files unchanged when
+// nothing changed).
+func listSQLID(key string) uint64 {
+	h := uint64(14695981039346656037)
+	for i := 0; i < len(key); i++ {
+		h ^= uint64(key[i])
+		h *= 1099511628211
+	}
+	return h
+}
+
+func writeList(w *buf, tag string, entries []listEntry) {
+	w.WriteString(tag)
+	w.u32(92)
+	w.u32(uint32(len(entries)))
+	w.zeros(80)
+	for _, e := range entries {
+		start := w.Len()
+		if e.isAlbum {
+			w.WriteString("mhia")
+			w.u32(88)
+			w.u32(0)
+			w.u32(uint32(len(e.strs)))
+			w.u32(e.id)
+			w.u64(e.sqlID)
+			w.u32(2)
+			w.zeros(56)
+		} else {
+			w.WriteString("mhii")
+			w.u32(80)
+			w.u32(0)
+			w.u32(uint32(len(e.strs)))
+			w.u32(e.id)
+			w.u64(e.sqlID)
+			w.u32(2)
+			w.zeros(48)
+		}
+		for _, sm := range e.strs {
+			writeStringMhod(w, sm[0].(uint32), sm[1].(string))
+		}
+		w.patch32(start+8, uint32(w.Len()-start))
+	}
+}
+
 // Bytes serialises the database.
 func (db *DB) Bytes() []byte {
+	albums, artists := db.assignListIDs()
 	w := &buf{}
 	h := append([]byte(nil), db.header...)
-	le.PutUint32(h[0x14:], 3)
+	sections := 7 // 1, 3, 2, 4, 8, 6, 10 …
+	hasType5 := false
+	for _, k := range db.kept {
+		sections++
+		if k.typ == 5 {
+			hasType5 = true
+		}
+	}
+	if !hasType5 {
+		sections++ // … and an empty 5
+	}
+	le.PutUint32(h[0x14:], uint32(sections))
 	w.Write(h)
 
 	// --- mhsd type 1: tracks
@@ -921,6 +1071,31 @@ func (db *DB) Bytes() []byte {
 		for _, p := range db.Playlists {
 			db.writePlaylist(w, p, typ == 3 && p.IsPodcast(), &nextID)
 		}
+		w.patch32(sd+8, uint32(w.Len()-sd))
+	}
+
+	// --- mhsd type 4 (albums), 8 (artists), and the empty 6 and 10
+	for _, s := range []struct {
+		typ  uint32
+		tag  string
+		list []listEntry
+	}{{4, "mhla", albums}, {8, "mhli", artists}, {6, "mhlt", nil}, {10, "mhlt", nil}} {
+		sd := w.Len()
+		writeMhsd(w, s.typ)
+		writeList(w, s.tag, s.list)
+		w.patch32(sd+8, uint32(w.Len()-sd))
+	}
+	// --- kept sections, and an empty type 5 if there was none
+	if !hasType5 {
+		sd := w.Len()
+		writeMhsd(w, 5)
+		writeList(w, "mhlp", nil)
+		w.patch32(sd+8, uint32(w.Len()-sd))
+	}
+	for _, k := range db.kept {
+		sd := w.Len()
+		writeMhsd(w, k.typ)
+		w.Write(k.body)
 		w.patch32(sd+8, uint32(w.Len()-sd))
 	}
 	w.patch32(8, uint32(w.Len()))

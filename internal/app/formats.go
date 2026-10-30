@@ -425,6 +425,53 @@ type FMRequest struct {
 	Format    string   `json:"format"`
 	Quality   string   `json:"quality"`
 	AddToIPod bool     `json:"addToIPod"`
+	// Strip lists the details left out of converted files: "title",
+	// "artist", "albumArtist", "album", "genre", "year", "track", "disc",
+	// "composer", "grouping", "comment", "bpm", "compilation" and "artwork".
+	// The iPod's own library keeps showing songs' details either way.
+	Strip []string `json:"strip"`
+}
+
+// StripFields are the details the converter can leave out of new files.
+var StripFields = []string{"title", "artist", "albumArtist", "album", "genre", "year", "track", "disc",
+	"composer", "grouping", "comment", "bpm", "compilation", "artwork"}
+
+// stripTags clears the listed details. It reports whether "artwork" was
+// listed.
+func stripTags(t *media.Tags, strip []string) (noArt bool) {
+	for _, f := range strip {
+		switch f {
+		case "title":
+			t.Title = ""
+		case "artist":
+			t.Artist = ""
+		case "albumArtist":
+			t.AlbumArtist = ""
+		case "album":
+			t.Album = ""
+		case "genre":
+			t.Genre = ""
+		case "year":
+			t.Year = 0
+		case "track":
+			t.Track, t.TrackTotal = 0, 0
+		case "disc":
+			t.Disc, t.DiscTotal = 0, 0
+		case "composer":
+			t.Composer = ""
+		case "grouping":
+			t.Grouping = ""
+		case "comment":
+			t.Comment = ""
+		case "bpm":
+			t.BPM = 0
+		case "compilation":
+			t.Compilation = false
+		case "artwork":
+			noArt = true
+		}
+	}
+	return noArt
 }
 
 // FMOutcome reports what happened to one song.
@@ -778,8 +825,14 @@ func (a *App) fmConvert(ctx context.Context, d *ipod.Device, req FMRequest, f co
 		}
 		applyTagPatch(&tags, &e.Patch)
 		forIPod := e.Source == "ipod" || (req.AddToIPod && f.IPod)
-		t.job = convert.Job{Src: src, Info: si, Format: f.ID, Quality: req.Quality, ForIPod: forIPod, Tags: tags,
-			Art: art, WorkDir: work, Out: alloc.libraryPath(convertedBase, tags, f.Ext)}
+		// the copy is filed by artist and album even if those are left out
+		out := alloc.libraryPath(convertedBase, tags, f.Ext)
+		fileTags, fileArt := tags, art
+		if stripTags(&fileTags, req.Strip) {
+			fileArt = media.ArtEdit{Remove: true}
+		}
+		t.job = convert.Job{Src: src, Info: si, Format: f.ID, Quality: req.Quality, ForIPod: forIPod, Tags: fileTags,
+			Art: fileArt, WorkDir: work, Out: out}
 		if e.Source == "ipod" && f.IPod {
 			t.backup = alloc.libraryPath(originalsBase, tagsOfTrackLocked(a, t.track), strings.ToLower(filepath.Ext(src)))
 		}

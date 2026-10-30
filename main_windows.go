@@ -14,11 +14,15 @@ import (
 	webview2 "github.com/jchv/go-webview2"
 
 	"podmanager/internal/app"
+	"podmanager/internal/ipod"
 )
 
 func main() {
 	runtime.LockOSThread()
 	setProcessIdentity()
+	// iPods that sign their database (classic, nano 3G/4G) need their
+	// FireWire ID, which they report as the drive's USB serial number.
+	ipod.SerialLookup = driveSerial
 
 	local := os.Getenv("LOCALAPPDATA")
 	if local == "" {

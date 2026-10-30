@@ -22,17 +22,13 @@ import (
 	"podmanager/internal/itdb"
 )
 
-// Writing album art for the iPod (5th generation): each song with a cover
-// has an image entry (mhii) in iPod_Control/Artwork/ArtworkDB whose song ID
-// is the track's database ID. The entry lists one thumbnail per format; the
-// pixels live in F<format>_<n>.ithmb files as RGB565 little-endian. The
-// iPod Video uses 100×100 (format 1028) and 200×200 (format 1029). The
+// Writing album art: each song with a cover has an image entry (mhii) in
+// iPod_Control/Artwork/ArtworkDB whose song ID is the track's database ID.
+// The entry lists one thumbnail per format; the pixels live in
+// F<format>_<n>.ithmb files as RGB565 little-endian. Each generation uses
+// its own set of square sizes (model.go): the iPod Video 100×100 (format
+// 1028) and 200×200 (1029), the classic 320, 128 and 56, and so on. The
 // layout matches what libgpod writes.
-
-var videoCoverFormats = []struct {
-	id   uint32
-	side int
-}{{1029, 200}, {1028, 100}}
 
 type artThumb struct {
 	format     uint32
@@ -68,8 +64,35 @@ func (d *Device) artDBPath() string { return filepath.Join(d.artDir(), "ArtworkD
 // canWriteArtwork reports whether Classic iPod Manager knows this iPod's cover formats.
 func (d *Device) CanWriteArtwork() bool { return d.canWriteArtwork() }
 
-func (d *Device) canWriteArtwork() bool {
-	return strings.HasPrefix(d.Model.Generation, "5th")
+func (d *Device) canWriteArtwork() bool { return len(d.coverFormats()) > 0 }
+
+// coverFormats is the model's list, or for an iPod the model table doesn't
+// know, the square formats its ArtworkDB already uses.
+func (d *Device) coverFormats() []ArtFormat {
+	if d.Model.known || d.Model.Shuffle {
+		return d.Model.art
+	}
+	d.unknownArtOnce.Do(func() {
+		b, err := os.ReadFile(d.artDBPath())
+		if err != nil {
+			return
+		}
+		db, err := parseArtDBFull(b)
+		if err != nil {
+			return
+		}
+		seen := map[uint32]bool{}
+		for _, e := range db.entries {
+			for _, t := range e.thumbs {
+				f, ok := thumbFormats[t.format]
+				if ok && f[0] == f[1] && !seen[t.format] && int(t.size) == f[0]*f[1]*2 {
+					seen[t.format] = true
+					d.unknownArt = append(d.unknownArt, ArtFormat{t.format, f[0]})
+				}
+			}
+		}
+	})
+	return d.unknownArt
 }
 
 func (d *Device) loadArtDB() (*artDB, error) {
@@ -415,7 +438,7 @@ func (d *Device) SetArtwork(t *itdb.Track, picture []byte) error {
 		return errors.New(d.ReadOnly)
 	}
 	if !d.canWriteArtwork() {
-		return errors.New("Classic iPod Manager can only write album art for the iPod 5th generation")
+		return errors.New("this iPod doesn't show album art")
 	}
 	img, _, err := image.Decode(bytes.NewReader(picture))
 	if err != nil {
@@ -432,13 +455,13 @@ func (d *Device) SetArtwork(t *itdb.Track, picture []byte) error {
 		return err
 	}
 	var thumbs []artThumb
-	for _, f := range videoCoverFormats {
-		px := coverThumb(img, f.side)
-		name, off, err := d.appendIthmb(db, f.id, px)
+	for _, f := range d.coverFormats() {
+		px := coverThumb(img, f.Side)
+		name, off, err := d.appendIthmb(db, f.ID, px)
 		if err != nil {
 			return err
 		}
-		thumbs = append(thumbs, artThumb{format: f.id, file: ":" + name, offset: off, size: uint32(len(px)), w: f.side, h: f.side})
+		thumbs = append(thumbs, artThumb{format: f.ID, file: ":" + name, offset: off, size: uint32(len(px)), w: f.Side, h: f.Side})
 	}
 	dbid := t.DBID()
 	var e *artEntry
@@ -753,8 +776,8 @@ func (d *Device) removeUnusedIthmbs(db *artDB) {
 		if !ok || used[strings.ToLower(e.Name())] {
 			continue
 		}
-		for _, vf := range videoCoverFormats {
-			if f == vf.id {
+		for _, vf := range d.coverFormats() {
+			if f == vf.ID {
 				os.Remove(filepath.Join(d.artDir(), e.Name()))
 			}
 		}

@@ -290,3 +290,42 @@ func TestFormatManager(t *testing.T) {
 		t.Fatalf("temp files left: %v", left)
 	}
 }
+
+func TestFormatManagerStrip(t *testing.T) {
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	base := t.TempDir()
+	music := filepath.Join(base, "music")
+	main := filepath.Join(base, "Main")
+	os.MkdirAll(music, 0o755)
+	src := filepath.Join(music, "one.mp3")
+	fmTone(t, src, "-c:a", "libmp3lame", "-b:a", "192k")
+	media.WriteTagsArt(src, media.Tags{Title: "Song One", Artist: "Band", Album: "First", Track: 4, TrackTotal: 10,
+		Comment: "secret note", Genre: "Rock", Year: 2001},
+		media.ArtEdit{Set: &media.Picture{Data: colourJPEG(color.RGBA{230, 20, 20, 255})}})
+	ev := make(chan Event, 100)
+	a := New(&fakePlat{pick: music}, t.TempDir(), func(e Event) { ev <- e })
+	a.SetPrefsFile(filepath.Join(base, "settings.json"))
+	a.SetMainFolder(main)
+	linkTool(t, filepath.Join(main, "Encoders", "AAC"), "ffmpeg")
+	err := a.FMRun(FMRequest{Convert: true, Format: "aac", Strip: []string{"comment", "album", "track", "artwork"},
+		Items: []FMEdit{{Key: "file:" + src, Source: "file", Path: src}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := waitDone(t, ev); r.OK != 1 || len(r.Errors) != 0 {
+		t.Fatalf("convert: %+v", r)
+	}
+	// still filed by album and track number, but without them inside
+	out := filepath.Join(main, "Converted Music", "Band", "First", "04 Song One.m4a")
+	si, err := media.Inspect(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tg := si.Tags
+	if si.HasArt || tg.Comment != "" || tg.Album != "" || tg.Track != 0 || tg.TrackTotal != 0 ||
+		tg.Title != "Song One" || tg.Artist != "Band" || tg.Genre != "Rock" || tg.Year != 2001 {
+		t.Fatalf("tags of the converted file: %+v art=%v", tg, si.HasArt)
+	}
+}
